@@ -16,9 +16,6 @@ type PlanetSelection struct{}
 
 func (s PlanetSelection) Update(dt float64, w *ecs.World) {
 	ctx := ecs.GetWorldContext(w)
-	if ctx.CurrentLayer != ecs.LayerSpace {
-		return
-	}
 	// Ensure three planet cards exist once
 	created := false
 	ecs.View2Of[PlanetCard, PlanetCard](w).Each(func(t ecs.Tuple2[PlanetCard, PlanetCard]) { created = true })
@@ -34,8 +31,9 @@ func (s PlanetSelection) Update(dt float64, w *ecs.World) {
 			ecs.Add(w, e, components.Renderable{Glyph: glyph})
 		}
 	}
-	in, ok := ecs.Get[components.Input](w, 2)
-	if ok {
+	var in *components.Input
+	ecs.View2Of[components.Player, components.Input](w).Each(func(t ecs.Tuple2[components.Player, components.Input]) { in = t.B })
+	if in != nil {
 		choice := -1
 		if in.Left {
 			choice = 0
@@ -47,7 +45,6 @@ func (s PlanetSelection) Update(dt float64, w *ecs.World) {
 			choice = 2
 		}
 		if choice >= 0 {
-			ecs.SetWorldContext(w, ecs.WorldContext{CurrentLayer: ecs.LayerSpace})
 			pg := data.PlanetGenerator{Seed: int64(choice + 1), Biome: data.BiomeToftForest, MaxDepth: 120}
 			p := pg.GenerateToft()
 			ctx.PlanetID = p.ID

@@ -11,15 +11,9 @@ type DepthProgression struct{}
 
 type TerrainGen struct{}
 
-type RiverTag struct{}
-
 type SurfaceMovement struct{}
 
 func (s SurfaceHeartbeat) Update(dt float64, w *ecs.World) {
-	ctx := ecs.GetWorldContext(w)
-	if ctx.CurrentLayer != ecs.LayerPlanetSurface {
-		return
-	}
 	wi, ok := ecs.Get[components.WorldInfo](w, 1)
 	if !ok {
 		return
@@ -30,9 +24,6 @@ func (s SurfaceHeartbeat) Update(dt float64, w *ecs.World) {
 
 func (t TerrainGen) Update(dt float64, w *ecs.World) {
 	ctx := ecs.GetWorldContext(w)
-	if ctx.CurrentLayer != ecs.LayerPlanetSurface {
-		return
-	}
 	wi, ok := ecs.Get[components.WorldInfo](w, 1)
 	if !ok {
 		return
@@ -54,27 +45,28 @@ func (t TerrainGen) Update(dt float64, w *ecs.World) {
 		e := w.Create()
 		ecs.Add(w, e, components.Position{X: float64(x0), Y: float64(y)})
 		ecs.Add(w, e, components.Tile{Glyph: '~', Type: components.TileRiver})
-		ecs.Add(w, e, RiverTag{})
+		ecs.Add(w, e, components.RiverTag{})
 	}
 }
 
 func (d DepthProgression) Update(dt float64, w *ecs.World) {
 	ctx := ecs.GetWorldContext(w)
-	if ctx.CurrentLayer != ecs.LayerPlanetSurface {
+	var in *components.Input
+	var playerPos components.Position
+	ecs.View3Of[components.Player, components.Input, components.Position](w).Each(func(t ecs.Tuple3[components.Player, components.Input, components.Position]) {
+		in = t.B
+		playerPos = *t.C
+	})
+	if in == nil {
 		return
 	}
-	in, ok := ecs.Get[components.Input](w, 2)
-	if !ok {
-		return
-	}
-	we, _ := ecs.Get[Weather](w, 1)
+	we, _ := ecs.Get[components.Weather](w, 1)
 	step := 1
 	if we.Rain {
 		step = 2
 	}
-	playerPos, _ := ecs.Get[components.Position](w, 2)
 	river := false
-	ecs.View2Of[components.Position, RiverTag](w).Each(func(t ecs.Tuple2[components.Position, RiverTag]) {
+	ecs.View2Of[components.Position, components.RiverTag](w).Each(func(t ecs.Tuple2[components.Position, components.RiverTag]) {
 		if int(t.A.X) == int(playerPos.X) && int(t.A.Y) == int(playerPos.Y) {
 			river = true
 		}
@@ -99,12 +91,13 @@ func (s SurfaceMovement) Update(dt float64, w *ecs.World) {
 	if ctx.CurrentLayer != ecs.LayerPlanetSurface {
 		return
 	}
-	in, ok := ecs.Get[components.Input](w, 2)
-	if !ok {
-		return
-	}
-	p, ok := ecs.Get[components.Position](w, 2)
-	if !ok {
+	var in *components.Input
+	var p *components.Position
+	ecs.View3Of[components.Player, components.Input, components.Position](w).Each(func(t ecs.Tuple3[components.Player, components.Input, components.Position]) {
+		in = t.B
+		p = t.C
+	})
+	if in == nil || p == nil {
 		return
 	}
 	dx, dy := 0.0, 0.0
@@ -123,13 +116,13 @@ func (s SurfaceMovement) Update(dt float64, w *ecs.World) {
 	if dx == 0 && dy == 0 {
 		return
 	}
-	we, _ := ecs.Get[Weather](w, 1)
+	we, _ := ecs.Get[components.Weather](w, 1)
 	speed := 1.0
 	if we.Rain {
 		speed *= 0.5
 	}
 	onRiver := false
-	ecs.View2Of[components.Position, RiverTag](w).Each(func(t ecs.Tuple2[components.Position, RiverTag]) {
+	ecs.View2Of[components.Position, components.RiverTag](w).Each(func(t ecs.Tuple2[components.Position, components.RiverTag]) {
 		if int(t.A.X) == int(p.X) && int(t.A.Y) == int(p.Y) {
 			onRiver = true
 		}
@@ -139,6 +132,6 @@ func (s SurfaceMovement) Update(dt float64, w *ecs.World) {
 	}
 	p.X += dx * speed
 	p.Y += dy * speed
-	ecs.Add(w, 2, p)
+	ecs.View1Of[components.Player](w).Each(func(e ecs.Entity, _ *components.Player) { ecs.Add(w, e, *p) })
 	_ = ctx
 }
