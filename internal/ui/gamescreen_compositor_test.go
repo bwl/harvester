@@ -19,13 +19,13 @@ func TestGameScreen_CompositorRendersHUDAndMap(t *testing.T) {
 		t.Fatal("expected GlobalScreen")
 	}
 	g.completeTransition()
-	// ensure wrapper
-	wrapper, ok := g.subScreen.(*GameScreenWrapper)
+	// ensure space screen (games start in space)
+	spaceScreen, ok := g.subScreen.(*SpaceScreen)
 	if !ok {
-		t.Fatal("expected GameScreenWrapper")
+		t.Fatal("expected SpaceScreen")
 	}
-	_, _ = wrapper.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	out := wrapper.View()
+	_, _ = spaceScreen.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	out := spaceScreen.View()
 	if out == "" {
 		t.Fatal("no output")
 	}

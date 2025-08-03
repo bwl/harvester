@@ -10,15 +10,15 @@ import (
 func TestGameScreen_Golden(t *testing.T) {
 	gs := NewGlobalScreen()
 	// force transition
-	s := NewStartScreen()
-	s.result = &StartResult{Action: ActionNewGame}
-	gs.subScreen = s
-	m, _ := gs.handleStartScreenResult(s.result)
+	startScreen := NewStartScreen()
+	startScreen.result = &StartResult{Action: ActionNewGame}
+	gs.subScreen = startScreen
+	m, _ := gs.handleStartScreenResult(startScreen.result)
 	g := m.(*GlobalScreen)
 	g.completeTransition()
-	w := g.subScreen.(*GameScreenWrapper)
-	_, _ = w.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	out := w.View()
+	spaceScreen := g.subScreen.(*SpaceScreen)
+	_, _ = spaceScreen.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	out := spaceScreen.View()
 	if out == "" { t.Fatal("no output") }
 	goldenPath := "testdata/gamescreen_golden.txt"
 	if os.Getenv("UPDATE_GOLDEN") == "1" {

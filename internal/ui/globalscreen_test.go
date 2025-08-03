@@ -113,8 +113,8 @@ func TestGlobalScreenGameTransition(t *testing.T) {
 		t.Error("Should be transitioning after start screen result")
 	}
 
-	if updatedGS.nextScreen != ScreenGame {
-		t.Error("Should be transitioning to game screen")
+	if updatedGS.nextScreen != ScreenSpace {
+		t.Error("Should be transitioning to space screen")
 	}
 }
 

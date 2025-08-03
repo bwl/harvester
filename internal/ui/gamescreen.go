@@ -10,14 +10,14 @@ import (
 	"harvester/pkg/rendering"
 )
 
-// GameScreenWrapper wraps the existing Model to implement SubScreen interface
-type GameScreenWrapper struct {
+// PlanetScreen handles planet surface and deep exploration
+type PlanetScreen struct {
 	model         *Model
 	renderer      *rendering.ViewRenderer
 	width, height int
 }
 
-func NewGameScreenWrapper(startResult *StartResult) *GameScreenWrapper {
+func NewPlanetScreen(startResult *StartResult) *PlanetScreen {
 	// Create the game model with random seed
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	model := NewModelWithRNG(r)
@@ -45,68 +45,84 @@ func NewGameScreenWrapper(startResult *StartResult) *GameScreenWrapper {
 		// Start fresh - no loading needed
 	}
 
-	return &GameScreenWrapper{
+	return &PlanetScreen{
 		model: &model,
 	}
 }
 
-func (g *GameScreenWrapper) Init() tea.Cmd {
-	return g.model.Init()
+func (p *PlanetScreen) Init() tea.Cmd {
+	return p.model.Init()
 }
 
-func (g *GameScreenWrapper) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Handle game-specific quit with ESC
+func (p *PlanetScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Handle planet-specific controls
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		if keyMsg.String() == "escape" {
-			// TODO: Return to start screen or show pause menu
-			// For now, just quit with animation
-			return g, tea.Quit
+			// TODO: Return to space screen when escaping from planet
+			return p, tea.Quit
 		}
 	}
 
-	newModel, cmd := g.model.Update(msg)
-	if newModel != g.model {
-		// Model was replaced, update our wrapper
-		if gameModel, ok := newModel.(*Model); ok {
-			g.model = gameModel
-		}
-	}
-
-	return g, cmd
+	// Forward the message to the underlying model
+	_, cmd := p.model.Update(msg)
+	
+	return p, cmd
 }
 
-func (g *GameScreenWrapper) View() string {
-	if g.renderer == nil || g.width == 0 || g.height == 0 {
-		return g.model.View()
+func (p *PlanetScreen) View() string {
+	if p.renderer == nil || p.width == 0 || p.height == 0 {
+		return p.model.View()
 	}
-	g.renderer.UnregisterAll()
-	mapH := g.height - 3
+	p.renderer.UnregisterAll()
+	mapH := p.height - 3
 	if mapH < 1 {
 		mapH = 1
 	}
-	gm := buildGameGlyphs(g.model, g.width, mapH)
+	
+	// Build planet-specific glyphs (terrain, creatures, items)
+	gm := buildPlanetGlyphs(p.model, p.width, mapH)
 	if gm != nil {
-		g.renderer.RegisterContent(newTerrainContent(gm))
+		p.renderer.RegisterContent(newTerrainContent(gm))
 	}
-	hud := buildHUDGlyphs(g.model, g.width)
+	
+	// Build planet HUD (health, inventory, depth)
+	hud := buildPlanetHUDGlyphs(p.model, p.width)
 	if hud != nil {
-		g.renderer.RegisterContent(newHUDContent(hud))
+		p.renderer.RegisterContent(newHUDContent(hud))
 	}
-	rp := buildRightPanelGlyphs(g.model)
+	
+	rp := buildRightPanelGlyphs(p.model)
 	if rp != nil {
-		g.renderer.RegisterContent(newUIRightPanel(rp))
+		p.renderer.RegisterContent(newUIRightPanel(rp))
 	}
-	return g.renderer.Render()
+	return p.renderer.Render()
 }
 
-func (g *GameScreenWrapper) HandleGlobalAction(action GlobalAction) (SubScreen, tea.Cmd) {
+func (p *PlanetScreen) HandleGlobalAction(action GlobalAction) (SubScreen, tea.Cmd) {
 	switch action {
 	case ActionStartShutdown:
-		// Game can handle shutdown by saving state
-		return g, nil
+		// Planet screen can handle shutdown by saving state
+		return p, nil
 	default:
-		return g, nil
+		return p, nil
 	}
+}
+
+// Planet-specific rendering functions
+func buildPlanetGlyphs(m *Model, width, height int) [][]rendering.Glyph {
+	// Filter for planet layer content only
+	ctx := ecs.GetWorldContext(m.World())
+	if ctx.CurrentLayer == ecs.LayerSpace {
+		return nil // Don't render space content on planet screen
+	}
+	
+	// Use existing map rendering but focused on planet content
+	return buildGameGlyphs(m, width, height)
+}
+
+func buildPlanetHUDGlyphs(m *Model, width int) [][]rendering.Glyph {
+	// Planet-specific HUD: health, inventory, depth, temperature, etc.
+	return buildHUDGlyphs(m, width)
 }
 
 // Use existing itoa function from components.go

@@ -14,7 +14,8 @@ type ScreenType int
 
 const (
 	ScreenStart ScreenType = iota
-	ScreenGame
+	ScreenSpace
+	ScreenPlanet
 	ScreenQuitting
 )
 
@@ -229,7 +230,7 @@ func (g *GlobalScreen) RegisterContent(renderer *rendering.ViewRenderer) {
 }
 
 func (g *GlobalScreen) isInGameScreen() bool {
-	return g.currentScreen == ScreenGame
+	return g.currentScreen == ScreenSpace || g.currentScreen == ScreenPlanet
 }
 
 func (g *GlobalScreen) startShutdownAnimation() {
@@ -245,28 +246,44 @@ func (g *GlobalScreen) handleStartScreenResult(result *StartResult) (tea.Model, 
 		return g, nil
 
 	case ActionContinue, ActionLoadSlot, ActionNewGame:
-		// Transition to game screen
-		return g.transitionToGame(result)
+		// Transition to space screen (games start in space)
+		return g.transitionToSpace(result)
 
 	default:
 		return g, nil
 	}
 }
 
-func (g *GlobalScreen) transitionToGame(startResult *StartResult) (tea.Model, tea.Cmd) {
-	// Create new game model based on start result
-	gameModel := g.createGameModel(startResult)
+func (g *GlobalScreen) transitionToSpace(startResult *StartResult) (tea.Model, tea.Cmd) {
+	// Create new space screen based on start result
+	spaceScreen := g.createSpaceScreen(startResult)
 
-	g.nextScreen = ScreenGame
-	g.nextSubScreen = gameModel
+	g.nextScreen = ScreenSpace
+	g.nextSubScreen = spaceScreen
 	g.transitioning = true
 
 	return g, nil
 }
 
-func (g *GlobalScreen) createGameModel(result *StartResult) SubScreen {
-	// Create a wrapper around the existing Model to make it implement SubScreen
-	return NewGameScreenWrapper(result)
+func (g *GlobalScreen) transitionToPlanet(startResult *StartResult) (tea.Model, tea.Cmd) {
+	// Create new planet screen based on start result
+	planetScreen := g.createPlanetScreen(startResult)
+
+	g.nextScreen = ScreenPlanet
+	g.nextSubScreen = planetScreen
+	g.transitioning = true
+
+	return g, nil
+}
+
+func (g *GlobalScreen) createSpaceScreen(result *StartResult) SubScreen {
+	// Create space navigation screen
+	return NewSpaceScreen(result)
+}
+
+func (g *GlobalScreen) createPlanetScreen(result *StartResult) SubScreen {
+	// Create planet exploration screen
+	return NewPlanetScreen(result)
 }
 
 func (g *GlobalScreen) completeTransition() {

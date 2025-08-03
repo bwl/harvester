@@ -79,16 +79,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q":
 			return m, tea.Quit
-		case "h", "left":
+		case "left", "a":
 			systems.SetPlayerInput(m.world, m.player, "left")
 			systems.ApplyDirectionalVelocity(m.world, m.player, -1, 0)
-		case "l", "right":
+		case "right", "d":
 			systems.SetPlayerInput(m.world, m.player, "right")
 			systems.ApplyDirectionalVelocity(m.world, m.player, 1, 0)
-		case "k", "up":
+		case "up", "w":
 			systems.SetPlayerInput(m.world, m.player, "up")
 			systems.ApplyDirectionalVelocity(m.world, m.player, 0, -1)
-		case "j", "down":
+		case "down", "s":
 			systems.SetPlayerInput(m.world, m.player, "down")
 			systems.ApplyDirectionalVelocity(m.world, m.player, 0, 1)
 		case ">":
