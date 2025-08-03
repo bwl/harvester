@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,8 +15,6 @@ import (
 	"harvester/pkg/engine"
 	"harvester/pkg/systems"
 )
-
-func itoa(i int) string { return strconv.Itoa(i) }
 
 var mapRender *systems.MapRender
 
@@ -30,8 +27,11 @@ type Model struct {
 	scheduler interface {
 		Update(dt float64, w *ecs.World)
 	}
-	render *systems.Render
-	player ecs.Entity
+	render        *systems.Render
+	player        ecs.Entity
+	layoutManager *LayoutManager
+	frame         int
+	prevStats     PlayerStatsData
 }
 
 func (m *Model) World() *ecs.World { return m.world }
@@ -41,7 +41,13 @@ func NewModel(gs any) Model { return NewModelWithRNG(rand.New(rand.NewSource(1))
 func NewModelWithRNG(r *rand.Rand) Model {
 	bs := engine.New(r)
 	w := bs.World
-	m := Model{rng: r, world: w, scheduler: bs.Scheduler, render: bs.Render}
+	m := Model{
+		rng:           r,
+		world:         w,
+		scheduler:     bs.Scheduler,
+		render:        bs.Render,
+		layoutManager: NewLayoutManager(120, 40),
+	}
 	mapRender = bs.MapRender
 	m.player = bs.Player
 	for y := 0; y < 80; y++ {
@@ -66,6 +72,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width, m.Height = msg.Width, msg.Height
+		m.layoutManager.Update(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q":
@@ -98,7 +105,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case time.Time:
 		prev := ecs.GetWorldContext(m.world)
 		start := time.Now()
+		
+		// Store previous stats for trend calculation
+		if ps, exists := ecs.Get[components.PlayerStats](m.world, m.player); exists {
+			m.prevStats = PlayerStatsData{
+				Fuel:  ps.Fuel,
+				Hull:  ps.Hull,
+				Drive: ps.Drive,
+			}
+		}
+		
 		m.scheduler.Update(1.0/20.0, m.world)
+		m.frame++ // Increment frame counter for animations
+		
 		wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
 		if int(wi.Tick)%100 == 0 {
 			m.saveCompressed()
@@ -119,30 +138,97 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-var (
-	spaceStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render
-	galStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("220")).Render
-	playerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("45")).Render
-)
-
-const (
-	rightPanelWidth   = 30
-	bottomPanelHeight = 5
-	minMapW           = 10
-	minMapH           = 10
-)
+/* moved to styles.go and layout.go */
 
 func (m *Model) renderStatusBar(w int) string {
 	wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
 	ps, _ := ecs.Get[components.PlayerStats](m.world, m.player)
 	ctx := ecs.GetWorldContext(m.world)
-	return lipgloss.NewStyle().Width(w).Render(strings.Join([]string{
-		"Layer " + layerName(ctx.CurrentLayer),
-		"Planet " + itoa(ctx.PlanetID),
-		"Depth " + itoa(ctx.Depth),
-		"Tick " + itoa(int(wi.Tick)),
-		"Fuel " + itoa(ps.Fuel) + "  Hull " + itoa(ps.Hull) + "  Drive " + itoa(ps.Drive),
-	}, "  |  "))
+
+	location := LocationData{
+		Layer:  layerName(ctx.CurrentLayer),
+		Planet: ctx.PlanetID,
+		Depth:  ctx.Depth,
+	}
+
+	currentStats := PlayerStatsData{
+		Fuel:  ps.Fuel,
+		Hull:  ps.Hull,
+		Drive: ps.Drive,
+	}
+
+	info := GameInfoData{
+		Tick: int(wi.Tick),
+	}
+
+	// Use advanced stats with trends and animations
+	left := lipgloss.JoinHorizontal(lipgloss.Center, 
+		LocationComponent(location), 
+		Muted("  |  "), 
+		GameInfoComponent(info))
+	
+	right := AdvancedPlayerStatsComponent(currentStats, m.prevStats, m.frame)
+	
+	return NewStyleBuilder().
+		Width(w).
+		Background(GetCurrentTheme().Bg).
+		Foreground(GetCurrentTheme().Text).
+		PaddingHorizontal(1).
+		Render(lipgloss.JoinHorizontal(lipgloss.Center,
+			left,
+			strings.Repeat(" ", max(0, w-lipgloss.Width(left)-lipgloss.Width(right)-4)),
+			right,
+		))
+}
+
+
+
+func (m *Model) renderRightPanel() string {
+	ctx := ecs.GetWorldContext(m.world)
+	layout := m.layoutManager.GetLayout()
+	dims := layout.Calculate()
+
+	// Dynamic quest panel with state-aware styling
+	questData := QuestPanelData{
+		Status: royalCharterStatus(ctx.QuestProgress),
+	}
+	
+	// Determine quest state based on progress
+	questState := StateNormal
+	if ctx.QuestProgress.RoyalCharterComplete {
+		questState = StateSuccess
+	} else if ctx.QuestProgress.ContractsCollected == 0 {
+		questState = StateWarning
+	}
+
+	controlGroups := []ControlsGroup{
+		{
+			Title: "Movement",
+			Items: []ControlItem{
+				{"h j k l", "or arrows"},
+			},
+		},
+		{
+			Title: "Actions",
+			Items: []ControlItem{
+				{"> ", "enter/descend"},
+				{"q ", "quit"},
+			},
+		},
+		{
+			Title: "Save",
+			Items: []ControlItem{
+				{"Ctrl+S", "manual save"},
+				{"1-3", "save slots"},
+			},
+		},
+	}
+
+	// Use dynamic quest panel and responsive controls
+	quest := DynamicQuestPanel(questData, questState)
+	controls := ResponsiveControlsPanel(controlGroups, dims.RightWidth)
+
+	return lipgloss.JoinVertical(lipgloss.Left, quest, controls)
 }
 
 func (m *Model) renderMap(mapW, mapH int) string {
@@ -189,7 +275,7 @@ func (m *Model) renderMap(mapW, mapH int) string {
 			}
 			ch := string(canvas[y][x])
 			if ch == "." {
-				ch = spaceStyle(".")
+				ch = Muted(".")
 			}
 			b.WriteString(ch)
 		}
@@ -198,16 +284,8 @@ func (m *Model) renderMap(mapW, mapH int) string {
 	return b.String()
 }
 
-func (m *Model) renderUI(w, h int, mapStr, rightStr, statusStr, logStr string) string {
-	main := lipgloss.JoinHorizontal(lipgloss.Top,
-		lipgloss.NewStyle().Width(w-rightPanelWidth).Height(h-bottomPanelHeight).Render(mapStr),
-		lipgloss.NewStyle().Width(rightPanelWidth).Render(rightStr),
-	)
-	return lipgloss.JoinVertical(lipgloss.Left,
-		statusStr,
-		main,
-		lipgloss.NewStyle().Width(w).Render(logStr),
-	)
+func (m *Model) renderUI(mapStr, rightStr, statusStr, logStr string) string {
+	return m.layoutManager.RenderWithLayout(mapStr, rightStr, statusStr, logStr)
 }
 
 func (m *Model) save() {
@@ -267,6 +345,7 @@ func (m *Model) loadSlot(n int) {
 }
 
 func (m Model) View() string {
+	// Update layout manager if dimensions changed
 	w, h := m.Width, m.Height
 	if w == 0 {
 		w = 120
@@ -274,20 +353,25 @@ func (m Model) View() string {
 	if h == 0 {
 		h = 40
 	}
-	mapW, mapH := w-rightPanelWidth, h-bottomPanelHeight
-	if mapW < minMapW {
-		mapW = minMapW
+	
+	// Get layout dimensions
+	layout := m.layoutManager.GetLayout()
+	dims := layout.Calculate()
+	
+	// Render components
+	mapStr := m.renderMap(dims.MapWidth, dims.MapHeight)
+	rightStr := m.renderRightPanel()
+	status := m.renderStatusBar(dims.ContentWidth)
+	
+	// Convert log to LogMessage format for enhanced styling
+	var logMessages []LogMessage
+	for _, logLine := range m.log {
+		logMessages = append(logMessages, LogMessage{
+			Text: logLine,
+			Type: LogInfo,
+		})
 	}
-	if mapH < minMapH {
-		mapH = minMapH
-	}
-	mapStr := m.renderMap(mapW, mapH)
-	right := strings.Join([]string{
-		"Quest:", royalCharterStatus(ecs.GetWorldContext(m.world).QuestProgress),
-		"",
-		"Keys:", "h/j/k/l move", "> enter", "q quit",
-	}, "\n")
-	status := m.renderStatusBar(w)
-	log := strings.Join(m.log, "\n")
-	return m.renderUI(w, h, mapStr, right, status, log)
+	logStr := LogPanel(logMessages, dims.LogWidth)
+	
+	return m.renderUI(mapStr, rightStr, status, logStr)
 }
