@@ -12,7 +12,7 @@ func NewTerrainContent(g [][]rendering.Glyph, w, h int) *TerrainContent {
 }
 
 func (t *TerrainContent) GetLayer() rendering.Layer { return rendering.LayerGame }
-func (t *TerrainContent) GetZ() int { return rendering.ZContent }
+func (t *TerrainContent) GetZ() int                 { return rendering.ZContent }
 func (t *TerrainContent) GetPosition() rendering.Position {
 	return rendering.Position{Horizontal: rendering.Left, Vertical: rendering.Top}
 }

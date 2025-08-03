@@ -1,11 +1,8 @@
 package ui
 
 import (
-	"encoding/json"
-	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -54,11 +51,31 @@ func NewModelWithRNG(r *rand.Rand) Model {
 	m.player = bs.Player
 	for y := 0; y < 80; y++ {
 		for x := 0; x < 200; x++ {
-			if (x+y)%11 == 0 {
+			n := (x*73856093 ^ y*19349663) % 100
+			if n < 6 {
 				e := w.Create()
 				ecs.Add(w, e, components.Position{X: float64(x), Y: float64(y)})
-				ecs.Add(w, e, components.Tile{Glyph: '*', Type: components.TileStar})
-				ecs.Add(w, e, components.Renderable{Glyph: '*', TileType: components.TileStar, StyleMod: &components.ColorModifier{Special: components.EffectTwinkling}})
+				tt := components.TileStar
+				glyph := '*'
+				switch {
+				case n < 1:
+					tt, glyph = components.TileGalaxyCore, '¤'
+				case n < 2:
+					tt, glyph = components.TileNebula, '≈'
+				case n < 4:
+					tt, glyph = components.TileAsteroid, '·'
+				default:
+					tt, glyph = components.TileStar, '*'
+				}
+				ecs.Add(w, e, components.Tile{Glyph: glyph, Type: tt})
+				ecs.Add(w, e, components.Renderable{Glyph: glyph, TileType: tt, StyleMod: &components.ColorModifier{Special: components.EffectTwinkling}})
+			}
+			// rare comets
+			if n == 42 {
+				e := w.Create()
+				ecs.Add(w, e, components.Position{X: float64(x), Y: float64(y)})
+				ecs.Add(w, e, components.Tile{Glyph: '⤳', Type: components.TileComet})
+				ecs.Add(w, e, components.Renderable{Glyph: '⤳', TileType: components.TileComet})
 			}
 		}
 	}
@@ -76,34 +93,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Width, m.Height = msg.Width, msg.Height
 		m.layoutManager.Update(msg.Width, msg.Height)
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q":
-			return m, tea.Quit
-		case "left", "a":
-			systems.SetPlayerInput(m.world, m.player, "left")
-			systems.ApplyDirectionalVelocity(m.world, m.player, -1, 0)
-		case "right", "d":
-			systems.SetPlayerInput(m.world, m.player, "right")
-			systems.ApplyDirectionalVelocity(m.world, m.player, 1, 0)
-		case "up", "w":
-			systems.SetPlayerInput(m.world, m.player, "up")
-			systems.ApplyDirectionalVelocity(m.world, m.player, 0, -1)
-		case "down", "s":
-			systems.SetPlayerInput(m.world, m.player, "down")
-			systems.ApplyDirectionalVelocity(m.world, m.player, 0, 1)
-		case ">":
-			systems.SetPlayerInput(m.world, m.player, "enter")
-		case "ctrl+s":
-			m.save()
-		case "ctrl+shift+s":
-			m.saveCompressed()
-		case "1":
-			m.saveSlot(1)
-		case "2":
-			m.saveSlot(2)
-		case "3":
-			m.saveSlot(3)
-		}
+		// key handling moved to unified input router
 	case time.Time:
 		prev := ecs.GetWorldContext(m.world)
 		start := time.Now()
@@ -120,9 +110,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.scheduler.Update(1.0/20.0, m.world)
 		m.frame++ // Increment frame counter for animations
 
-		if int(timing.Tick())%100 == 0 {
-			m.saveCompressed()
-		}
+		// Autosave is now handled at a higher level
 		dur := time.Since(start)
 		if os.Getenv("DEBUG_TICK") == "1" {
 			m.log = append(m.log, "engine dt:0.05 ui dt:0.0167 tick:"+dur.String())
@@ -182,7 +170,7 @@ func (m *Model) renderStatusBar(w int) string {
 		))
 }
 
-func (m *Model) renderRightPanel() string {
+/*
 	ctx := ecs.GetWorldContext(m.world)
 	layout := m.layoutManager.GetLayout()
 	dims := layout.Calculate()
@@ -229,6 +217,7 @@ func (m *Model) renderRightPanel() string {
 
 	return lipgloss.JoinVertical(lipgloss.Left, quest, controls)
 }
+*/
 
 func (m *Model) renderMap(mapW, mapH int) string {
 	m.scheduler.Update(0, m.world)
@@ -287,61 +276,6 @@ func (m *Model) renderUI(mapStr, rightStr, statusStr, logStr string) string {
 	return m.layoutManager.RenderWithLayout(mapStr, rightStr, statusStr, logStr)
 }
 
-func (m *Model) save() {
-	ss, _ := ecs.Save(m.world, nil)
-	b, _ := json.Marshal(ss)
-	_ = os.MkdirAll(".saves", 0o755)
-	_ = os.WriteFile(filepath.Join(".saves", "autosave.json"), b, 0o644)
-}
-func (m *Model) load() {
-	b, err := os.ReadFile(filepath.Join(".saves", "autosave.json"))
-	if err != nil {
-		return
-	}
-	var s ecs.Snapshot
-	if json.Unmarshal(b, &s) != nil {
-		return
-	}
-	_ = ecs.Load(m.world, &s, nil)
-}
-
-func (m *Model) saveCompressed() {
-	ss, _ := ecs.Save(m.world, nil)
-	b, _ := ecs.EncodeSnapshot(ss, ecs.SaveOptions{Compress: true})
-	_ = os.MkdirAll(".saves", 0o755)
-	_ = os.WriteFile(filepath.Join(".saves", "autosave.gz"), b, 0o644)
-}
-
-func (m *Model) loadCompressed() {
-	b, err := os.ReadFile(filepath.Join(".saves", "autosave.gz"))
-	if err != nil {
-		return
-	}
-	s, err := ecs.DecodeSnapshot(b, ecs.SaveOptions{Compress: true})
-	if err != nil {
-		return
-	}
-	_ = ecs.Load(m.world, s, nil)
-}
-
-func (m *Model) saveSlot(n int) {
-	ss, _ := ecs.Save(m.world, nil)
-	b, _ := ecs.EncodeSnapshot(ss, ecs.SaveOptions{Compress: true})
-	_ = os.MkdirAll(".saves", 0o755)
-	_ = os.WriteFile(filepath.Join(".saves", "slot"+itoa(n)+".gz"), b, 0o644)
-}
-
-func (m *Model) loadSlot(n int) {
-	b, err := os.ReadFile(filepath.Join(".saves", "slot"+itoa(n)+".gz"))
-	if err != nil {
-		return
-	}
-	s, err := ecs.DecodeSnapshot(b, ecs.SaveOptions{Compress: true})
-	if err != nil {
-		return
-	}
-	_ = ecs.Load(m.world, s, nil)
-}
 
 func (m Model) View() string {
 	// Update layout manager if dimensions changed
@@ -359,8 +293,8 @@ func (m Model) View() string {
 
 	// Render components
 	mapStr := m.renderMap(dims.MapWidth, dims.MapHeight)
-	rightStr := m.renderRightPanel()
-	status := m.renderStatusBar(dims.ContentWidth)
+	rightStr := ""
+	status := ""
 
 	// Convert log to LogMessage format for enhanced styling
 	var logMessages []LogMessage
@@ -370,7 +304,7 @@ func (m Model) View() string {
 			Type: LogInfo,
 		})
 	}
-	logStr := LogPanel(logMessages, dims.LogWidth)
-
+	_ = logMessages
+	logStr := ""
 	return m.renderUI(mapStr, rightStr, status, logStr)
 }

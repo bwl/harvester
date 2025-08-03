@@ -8,23 +8,18 @@ type Layout struct {
 	Height int
 	Margin int
 
-	// Panel dimensions
-	RightPanelWidth   int
-	BottomPanelHeight int
-	MinMapWidth       int
-	MinMapHeight      int
+	MinMapWidth  int
+	MinMapHeight int
 }
 
 // NewLayout creates a layout with default values
 func NewLayout(width, height int) Layout {
 	return Layout{
-		Width:             width,
-		Height:            height,
-		Margin:            2,
-		RightPanelWidth:   30,
-		BottomPanelHeight: 5,
-		MinMapWidth:       10,
-		MinMapHeight:      10,
+		Width:        width,
+		Height:       height,
+		Margin:       2,
+		MinMapWidth:  10,
+		MinMapHeight: 10,
 	}
 }
 
@@ -34,10 +29,6 @@ type LayoutDimensions struct {
 	ContentHeight int
 	MapWidth      int
 	MapHeight     int
-	RightWidth    int
-	RightHeight   int
-	LogWidth      int
-	LogHeight     int
 }
 
 // Calculate returns the calculated dimensions for all panels
@@ -46,9 +37,9 @@ func (l Layout) Calculate() LayoutDimensions {
 	contentW := l.Width - (l.Margin * 2)
 	contentH := l.Height - (l.Margin * 2)
 
-	// Calculate map dimensions
-	mapW := contentW - l.RightPanelWidth
-	mapH := contentH - l.BottomPanelHeight
+	// Map takes full content area
+	mapW := contentW
+	mapH := contentH
 
 	// Ensure minimum sizes
 	if mapW < l.MinMapWidth {
@@ -63,10 +54,6 @@ func (l Layout) Calculate() LayoutDimensions {
 		ContentHeight: contentH,
 		MapWidth:      mapW,
 		MapHeight:     mapH,
-		RightWidth:    l.RightPanelWidth,
-		RightHeight:   mapH, // Right panel same height as map
-		LogWidth:      contentW,
-		LogHeight:     l.BottomPanelHeight,
 	}
 }
 
@@ -83,16 +70,10 @@ const (
 func (l *Layout) ApplyPreset(preset LayoutPreset) {
 	switch preset {
 	case LayoutFull:
-		l.RightPanelWidth = 30
-		l.BottomPanelHeight = 5
 		l.Margin = 2
 	case LayoutCompact:
-		l.RightPanelWidth = 25
-		l.BottomPanelHeight = 3
 		l.Margin = 1
 	case LayoutMobile:
-		l.RightPanelWidth = 20
-		l.BottomPanelHeight = 2
 		l.Margin = 0
 	}
 }
@@ -161,15 +142,7 @@ func (lm *LayoutManager) RenderWithLayout(mapStr, rightStr, statusStr, logStr st
 	dims := lm.currentLayout.Calculate()
 
 	mapPanel := Sized(dims.MapWidth, dims.MapHeight, mapStr)
-	rightPanel := Sized(dims.RightWidth, 0, rightStr)
-
-	main := lipgloss.JoinHorizontal(lipgloss.Top, mapPanel, rightPanel)
-
-	content := lipgloss.JoinVertical(lipgloss.Left,
-		statusStr,
-		main,
-		Sized(dims.LogWidth, 0, logStr),
-	)
+	content := mapPanel
 
 	return lipgloss.NewStyle().
 		Margin(lm.currentLayout.Margin).

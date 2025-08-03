@@ -3,10 +3,7 @@ package ui
 import (
 	"fmt"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -32,14 +29,6 @@ type StartResult struct {
 	SlotNum int // for ActionLoadSlot
 }
 
-type SaveSlotInfo struct {
-	SlotNum  int
-	Exists   bool
-	ModTime  time.Time
-	Size     int64
-	GameInfo string // extracted from save data if possible
-}
-
 type StartScreen struct {
 	selected     int
 	menuItems    []string
@@ -59,7 +48,8 @@ type StartScreen struct {
 	backgroundWorld *ecs.World
 	mapRenderer     *systems.MapRender
 
-	renderer *rendering.ViewRenderer
+	// Save game manager
+	saveManager *SaveGameManager
 }
 
 func NewStartScreen() *StartScreen {
@@ -68,6 +58,7 @@ func NewStartScreen() *StartScreen {
 		showSlots:    false,
 		selectedSlot: 0,
 		shutdownAnim: nil,
+		saveManager:  NewSaveGameManager(),
 	}
 
 	s.scanSaveFiles()
@@ -171,8 +162,6 @@ func (s *StartScreen) renderMenuContent() rendering.RenderableContent {
 	return screens.NewMenuContent(glyphs, w, h)
 }
 
-
-
 // Simple ANSI code stripper to measure actual text width
 func stripANSI(s string) string {
 	result := ""
@@ -195,29 +184,10 @@ func stripANSI(s string) string {
 
 func (s *StartScreen) scanSaveFiles() {
 	// Check autosave
-	autosaveExists := false
-	if _, err := os.Stat(".saves/autosave.gz"); err == nil {
-		autosaveExists = true
-	}
+	autosaveExists := s.saveManager.HasAutosave()
 
 	// Check save slots
-	s.saveSlots = make([]SaveSlotInfo, 3)
-	for i := 1; i <= 3; i++ {
-		slotPath := filepath.Join(".saves", fmt.Sprintf("slot%d.gz", i))
-		info := SaveSlotInfo{
-			SlotNum: i,
-			Exists:  false,
-		}
-
-		if stat, err := os.Stat(slotPath); err == nil {
-			info.Exists = true
-			info.ModTime = stat.ModTime()
-			info.Size = stat.Size()
-			info.GameInfo = s.extractGameInfo(slotPath)
-		}
-
-		s.saveSlots[i-1] = info
-	}
+	s.saveSlots = s.saveManager.GetSaveSlots()
 
 	// Build menu based on what saves exist
 	s.menuItems = []string{}
@@ -240,24 +210,6 @@ func (s *StartScreen) scanSaveFiles() {
 	s.menuItems = append(s.menuItems, "New Game", "Quit")
 }
 
-func (s *StartScreen) extractGameInfo(path string) string {
-	// Try to extract basic info from save file
-	if b, err := os.ReadFile(path); err == nil {
-		if snapshot, err := ecs.DecodeSnapshot(b, ecs.SaveOptions{Compress: true}); err == nil {
-			// Look for world context to get layer info
-			// This is a simplified extraction - the actual snapshot structure may vary
-			dataStr := fmt.Sprintf("%+v", snapshot)
-			if strings.Contains(dataStr, "LayerSpace") {
-				return "Space"
-			} else if strings.Contains(dataStr, "LayerPlanetSurface") {
-				return "Planet Surface"
-			} else if strings.Contains(dataStr, "LayerPlanetDeep") {
-				return "Deep Underground"
-			}
-		}
-	}
-	return "Unknown"
-}
 
 func (s *StartScreen) buildMenuItems() {
 	// Menu items are built in scanSaveFiles
@@ -286,11 +238,6 @@ func (s *StartScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		s.width = msg.Width
 		s.height = msg.Height
-		if s.renderer == nil {
-			s.renderer = rendering.NewViewRenderer(s.width, s.height)
-		} else {
-			s.renderer.SetDimensions(s.width, s.height)
-		}
 		s.generateBackgroundTerrain() // Regenerate terrain for new size
 
 	case tea.KeyMsg:
@@ -306,6 +253,68 @@ func (s *StartScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return s, nil
+}
+
+func (s *StartScreen) HandleInput(a InputAction) tea.Cmd {
+	if s.showSlots {
+		switch a.Kind {
+		case InputMenuUp:
+			for i := s.selectedSlot - 1; i >= 0; i-- {
+				if s.saveSlots[i].Exists {
+					s.selectedSlot = i
+					break
+				}
+			}
+		case InputMenuDown:
+			for i := s.selectedSlot + 1; i < len(s.saveSlots); i++ {
+				if s.saveSlots[i].Exists {
+					s.selectedSlot = i
+					break
+				}
+			}
+		case InputMenuSelect:
+			if s.saveSlots[s.selectedSlot].Exists {
+				s.result = &StartResult{Action: ActionLoadSlot, SlotNum: s.saveSlots[s.selectedSlot].SlotNum}
+			}
+		case InputMenuBack:
+			s.showSlots = false
+		case InputQuit:
+			s.result = &StartResult{Action: ActionQuit}
+		}
+		return nil
+	}
+	switch a.Kind {
+	case InputMenuUp:
+		if s.selected > 0 {
+			s.selected--
+		}
+	case InputMenuDown:
+		if s.selected < len(s.menuItems)-1 {
+			s.selected++
+		}
+	case InputMenuSelect:
+		selectedItem := s.menuItems[s.selected]
+		switch selectedItem {
+		case "Continue":
+			s.result = &StartResult{Action: ActionContinue}
+		case "Load Game":
+			s.showSlots = true
+			s.selectedSlot = 0
+			for i, slot := range s.saveSlots {
+				if slot.Exists {
+					s.selectedSlot = i
+					break
+				}
+			}
+		case "New Game":
+			s.result = &StartResult{Action: ActionNewGame}
+		case "Quit":
+			s.result = &StartResult{Action: ActionQuit}
+		}
+	case InputMenuBack, InputQuit:
+		s.result = &StartResult{Action: ActionQuit}
+	}
+	return nil
 }
 
 func (s *StartScreen) updateMainMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -389,26 +398,7 @@ func (s *StartScreen) updateSlotSelection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (s *StartScreen) View() string {
-	if s.width == 0 || s.height == 0 {
-		return "Loading..."
-	}
-
-	if s.renderer == nil || s.width == 0 || s.height == 0 {
-		return "Loading..."
-	}
-	// Register contents per frame
-	s.renderer.UnregisterAll()
-	if bg := s.renderBackgroundContent(); bg != nil {
-		s.renderer.RegisterContent(bg)
-	}
-	if menu := s.renderMenuContent(); menu != nil {
-		s.renderer.RegisterContent(menu)
-	}
-	content := s.renderer.Render()
-	if s.shutdownAnim != nil {
-		return s.renderShutdownEffect(content)
-	}
-	return content
+	return ""
 }
 
 func (s *StartScreen) renderMainMenu() string {
@@ -619,7 +609,7 @@ func (s *StartScreen) RegisterContent(renderer *rendering.ViewRenderer) {
 	if bg := s.renderBackgroundContent(); bg != nil {
 		renderer.RegisterContent(bg)
 	}
-	
+
 	// Register menu content
 	if menu := s.renderMenuContent(); menu != nil {
 		renderer.RegisterContent(menu)

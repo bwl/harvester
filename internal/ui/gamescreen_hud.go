@@ -55,26 +55,6 @@ func buildHUDGlyphs(m *Model, w int) [][]rendering.Glyph {
 	return rendering.RenderLipglossString([]string{strings.TrimRight(line, "\n")}, rendering.Color{}, rendering.Color{}, rendering.StyleNone)
 }
 
-type terrainContent struct {
-	g    [][]rendering.Glyph
-	w, h int
-}
-
-func newTerrainContent(g [][]rendering.Glyph) *terrainContent {
-	if g == nil {
-		return nil
-	}
-	return &terrainContent{g: g, w: len(g[0]), h: len(g)}
-}
-func (t *terrainContent) GetLayer() rendering.Layer { return rendering.LayerGame }
-func (t *terrainContent) GetZ() int { return rendering.ZContent }
-func (t *terrainContent) GetPosition() rendering.Position {
-	return rendering.Position{Horizontal: rendering.Left, Vertical: rendering.Top}
-}
-func (t *terrainContent) GetBounds() rendering.Bounds {
-	return rendering.Bounds{Width: t.w, Height: t.h}
-}
-func (t *terrainContent) GetGlyphs() [][]rendering.Glyph { return t.g }
 
 type hudContent struct {
 	g [][]rendering.Glyph
@@ -88,7 +68,7 @@ func newHUDContent(g [][]rendering.Glyph) *hudContent {
 	return &hudContent{g: g, w: len(g[0])}
 }
 func (h *hudContent) GetLayer() rendering.Layer { return rendering.LayerMenu }
-func (h *hudContent) GetZ() int { return rendering.ZHUD }
+func (h *hudContent) GetZ() int                 { return rendering.ZHUD }
 func (h *hudContent) GetPosition() rendering.Position {
 	return rendering.Position{Horizontal: rendering.Left, Vertical: rendering.Top, OffsetY: 2}
 }

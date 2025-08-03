@@ -1,13 +1,14 @@
 package ui
 
 import (
+	"math/rand"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"harvester/pkg/ecs"
 	"harvester/pkg/rendering"
 	"harvester/pkg/timing"
 )
-
 
 // ScreenType represents different screen states
 type ScreenType int
@@ -49,19 +50,21 @@ type GlobalScreen struct {
 	height int
 
 	// Global effects
-	shutdownAnim  *timing.AnimationState
-	openingAnim   *timing.AnimationState
+	shutdownAnim   *timing.AnimationState
+	openingAnim    *timing.AnimationState
 	openingPending bool
-	quitting      bool
+	quitting       bool
 
 	// Screen transition state
 	transitioning bool
 	nextScreen    ScreenType
 	nextSubScreen SubScreen
 
-	// MVP compositor at global level (used by sub-screens already)
-	renderer *rendering.ViewRenderer
+	// Frame limiter only; renderer owned by RootView
 	fl *timing.FrameLimiter
+
+	// Save game manager
+	saveManager *SaveGameManager
 }
 
 func NewGlobalScreen() *GlobalScreen {
@@ -73,6 +76,7 @@ func NewGlobalScreen() *GlobalScreen {
 		shutdownAnim:  nil,
 		quitting:      false,
 		transitioning: false,
+		saveManager:   NewSaveGameManager(),
 	}
 }
 
@@ -114,13 +118,17 @@ func (g *GlobalScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// wait for size before animating
 		} else {
 			g.openingAnim.Update()
-			if g.openingAnim.IsFinished() { g.openingAnim = nil }
+			if g.openingAnim.IsFinished() {
+				g.openingAnim = nil
+			}
 		}
 	}
 
 	// Handle tick messages; throttle to 60 FPS
 	if _, ok := msg.(time.Time); ok {
-		if g.fl == nil { g.fl = timing.NewFrameLimiter(60) }
+		if g.fl == nil {
+			g.fl = timing.NewFrameLimiter(60)
+		}
 		if !g.fl.Allow() {
 			return g, tea.Tick(time.Millisecond*1, func(t time.Time) tea.Msg { return t })
 		}
@@ -155,11 +163,7 @@ func (g *GlobalScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return g, nil
 	}
 
-	// Handle screen transitions
-	if g.transitioning {
-		g.completeTransition()
-		return g, g.subScreen.Init()
-	}
+	// Screen transitions are now handled immediately in transition methods
 
 	// Forward message to current sub-screen
 	newSubScreen, cmd := g.subScreen.Update(msg)
@@ -175,6 +179,14 @@ func (g *GlobalScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			result := startScreen.GetResult()
 			if result != nil {
 				return g.handleStartScreenResult(result)
+			}
+		}
+	}
+	if g.currentScreen == ScreenSpace {
+		if space, ok := g.subScreen.(*SpaceScreen); ok {
+			ctx := ecs.GetWorldContext(space.model.World())
+			if ctx.CurrentLayer == ecs.LayerPlanetSurface {
+				return g.transitionToPlanet(&StartResult{Action: ActionContinue})
 			}
 		}
 	}
@@ -203,7 +215,7 @@ func (g *GlobalScreen) RegisterContent(renderer *rendering.ViewRenderer) {
 		return
 	}
 
-	// Let sub-screen register its content first
+	// Let sub-screen register its content first (map layers/panels)
 	if renderableScreen, ok := g.subScreen.(RenderableScreen); ok {
 		renderableScreen.RegisterContent(renderer)
 	} else {
@@ -227,6 +239,17 @@ func (g *GlobalScreen) RegisterContent(renderer *rendering.ViewRenderer) {
 		openingOverlay := NewCRTOpeningOverlay(g.width, g.height, progress)
 		renderer.RegisterContent(openingOverlay)
 	}
+}
+
+func (g *GlobalScreen) HandleInput(a InputAction) tea.Cmd {
+	if a.Kind == InputQuit {
+		g.startShutdownAnimation()
+		return nil
+	}
+	if ih, ok := any(g.subScreen).(InputHandler); ok {
+		return ih.HandleInput(a)
+	}
+	return nil
 }
 
 func (g *GlobalScreen) isInGameScreen() bool {
@@ -262,7 +285,9 @@ func (g *GlobalScreen) transitionToSpace(startResult *StartResult) (tea.Model, t
 	g.nextSubScreen = spaceScreen
 	g.transitioning = true
 
-	return g, nil
+	// Complete transition immediately to avoid requiring extra keypress
+	g.completeTransition()
+	return g, g.subScreen.Init()
 }
 
 func (g *GlobalScreen) transitionToPlanet(startResult *StartResult) (tea.Model, tea.Cmd) {
@@ -273,17 +298,51 @@ func (g *GlobalScreen) transitionToPlanet(startResult *StartResult) (tea.Model, 
 	g.nextSubScreen = planetScreen
 	g.transitioning = true
 
-	return g, nil
+	// Complete transition immediately to avoid requiring extra keypress
+	g.completeTransition()
+	return g, g.subScreen.Init()
 }
 
 func (g *GlobalScreen) createSpaceScreen(result *StartResult) SubScreen {
+	// Create model with appropriate save data loaded
+	model := g.createModelWithSaveData(result)
 	// Create space navigation screen
-	return NewSpaceScreen(result)
+	return NewSpaceScreen(model)
 }
 
 func (g *GlobalScreen) createPlanetScreen(result *StartResult) SubScreen {
+	// Create model with appropriate save data loaded
+	model := g.createModelWithSaveData(result)
 	// Create planet exploration screen
-	return NewPlanetScreen(result)
+	return NewPlanetScreen(model)
+}
+
+func (g *GlobalScreen) createModelWithSaveData(result *StartResult) *Model {
+	// Create the game model with random seed
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	model := NewModelWithRNG(r)
+
+	// Load save data based on start result
+	switch result.Action {
+	case ActionContinue:
+		// Load autosave
+		err := g.saveManager.LoadAutosave(model.World())
+		if err != nil {
+			// Log error but continue with new game
+		}
+
+	case ActionLoadSlot:
+		// Load specific slot
+		err := g.saveManager.LoadSlot(result.SlotNum, model.World())
+		if err != nil {
+			// Log error but continue with new game
+		}
+
+	case ActionNewGame:
+		// Start fresh - no loading needed, starts in LayerSpace by default
+	}
+
+	return &model
 }
 
 func (g *GlobalScreen) completeTransition() {
@@ -292,7 +351,6 @@ func (g *GlobalScreen) completeTransition() {
 	g.transitioning = false
 	g.nextSubScreen = nil
 }
-
 
 // Helper functions for line manipulation
 func splitLines(content string) []string {

@@ -12,7 +12,7 @@ func NewMenuContent(g [][]rendering.Glyph, w, h int) *MenuContent {
 }
 
 func (m *MenuContent) GetLayer() rendering.Layer { return rendering.LayerMenu }
-func (m *MenuContent) GetZ() int { return rendering.ZMenu }
+func (m *MenuContent) GetZ() int                 { return rendering.ZMenu }
 func (m *MenuContent) GetPosition() rendering.Position {
 	return rendering.Position{Horizontal: rendering.CenterH, Vertical: rendering.CenterV}
 }
