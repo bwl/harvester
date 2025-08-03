@@ -5,8 +5,12 @@ import (
 )
 
 func runeWidth(r rune) int {
-	if r == 0 { return 0 }
-	if unicode.Is(unicode.Mn, r) { return 0 }
+	if r == 0 {
+		return 0
+	}
+	if unicode.Is(unicode.Mn, r) {
+		return 0
+	}
 	// Basic wide ranges: CJK Unified Ideographs, Hangul, Hiragana, Katakana
 	if (r >= 0x1100 && r <= 0x115F) || // Hangul Jamo init
 		(r >= 0x2329 && r <= 0x232A) ||

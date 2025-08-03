@@ -22,7 +22,7 @@ func lipglossColorToRenderingColor(lc lipgloss.TerminalColor) Color {
 	if lc == nil {
 		return Color{} // Empty color
 	}
-	
+
 	// Handle different lipgloss color types
 	switch color := lc.(type) {
 	case lipgloss.Color:
@@ -42,12 +42,12 @@ func parseColorString(colorStr string) Color {
 	if len(colorStr) == 7 && colorStr[0] == '#' {
 		return parseHexColor(colorStr)
 	}
-	
+
 	// Handle ANSI color codes
 	if ansiColor, ok := ansiToRGB(colorStr); ok {
 		return ansiColor
 	}
-	
+
 	// Default to empty color
 	return Color{}
 }
@@ -57,10 +57,10 @@ func parseHexColor(hex string) Color {
 	if len(hex) != 7 || hex[0] != '#' {
 		return Color{}
 	}
-	
+
 	// Simple hex parsing
 	var r, g, b uint8
-	
+
 	// Parse each component
 	if rVal, ok := parseHexByte(hex[1:3]); ok {
 		r = rVal
@@ -71,7 +71,7 @@ func parseHexColor(hex string) Color {
 	if bVal, ok := parseHexByte(hex[5:7]); ok {
 		b = bVal
 	}
-	
+
 	return Color{R: r, G: g, B: b}
 }
 
@@ -80,7 +80,7 @@ func parseHexByte(hex string) (uint8, bool) {
 	if len(hex) != 2 {
 		return 0, false
 	}
-	
+
 	var result uint8
 	for i, c := range hex {
 		var val uint8
@@ -94,14 +94,14 @@ func parseHexByte(hex string) (uint8, bool) {
 		default:
 			return 0, false
 		}
-		
+
 		if i == 0 {
 			result = val * 16
 		} else {
 			result += val
 		}
 	}
-	
+
 	return result, true
 }
 
@@ -109,23 +109,23 @@ func parseHexByte(hex string) (uint8, bool) {
 func ansiToRGB(ansi string) (Color, bool) {
 	// Basic ANSI colors
 	ansiColors := map[string]Color{
-		"0":   {R: 0, G: 0, B: 0},       // Black
-		"1":   {R: 128, G: 0, B: 0},     // Dark Red
-		"2":   {R: 0, G: 128, B: 0},     // Dark Green
-		"3":   {R: 128, G: 128, B: 0},   // Dark Yellow
-		"4":   {R: 0, G: 0, B: 128},     // Dark Blue
-		"5":   {R: 128, G: 0, B: 128},   // Dark Magenta
-		"6":   {R: 0, G: 128, B: 128},   // Dark Cyan
-		"7":   {R: 192, G: 192, B: 192}, // Light Gray
-		"8":   {R: 128, G: 128, B: 128}, // Dark Gray
-		"9":   {R: 255, G: 0, B: 0},     // Red
-		"10":  {R: 0, G: 255, B: 0},     // Green
-		"11":  {R: 255, G: 255, B: 0},   // Yellow
-		"12":  {R: 0, G: 0, B: 255},     // Blue
-		"13":  {R: 255, G: 0, B: 255},   // Magenta
-		"14":  {R: 0, G: 255, B: 255},   // Cyan
-		"15":  {R: 255, G: 255, B: 255}, // White
-		
+		"0":  {R: 0, G: 0, B: 0},       // Black
+		"1":  {R: 128, G: 0, B: 0},     // Dark Red
+		"2":  {R: 0, G: 128, B: 0},     // Dark Green
+		"3":  {R: 128, G: 128, B: 0},   // Dark Yellow
+		"4":  {R: 0, G: 0, B: 128},     // Dark Blue
+		"5":  {R: 128, G: 0, B: 128},   // Dark Magenta
+		"6":  {R: 0, G: 128, B: 128},   // Dark Cyan
+		"7":  {R: 192, G: 192, B: 192}, // Light Gray
+		"8":  {R: 128, G: 128, B: 128}, // Dark Gray
+		"9":  {R: 255, G: 0, B: 0},     // Red
+		"10": {R: 0, G: 255, B: 0},     // Green
+		"11": {R: 255, G: 255, B: 0},   // Yellow
+		"12": {R: 0, G: 0, B: 255},     // Blue
+		"13": {R: 255, G: 0, B: 255},   // Magenta
+		"14": {R: 0, G: 255, B: 255},   // Cyan
+		"15": {R: 255, G: 255, B: 255}, // White
+
 		// Extended colors (some common ones)
 		"226": {R: 255, G: 255, B: 0},   // Bright Yellow
 		"27":  {R: 0, G: 135, B: 175},   // Blue
@@ -134,22 +134,22 @@ func ansiToRGB(ansi string) (Color, bool) {
 		"252": {R: 208, G: 208, B: 208}, // Light Gray
 		"235": {R: 38, G: 38, B: 38},    // Very Dark Gray
 	}
-	
+
 	if color, exists := ansiColors[ansi]; exists {
 		return color, true
 	}
-	
+
 	return Color{}, false
 }
 
 // lipglossStyleToRenderingStyle converts lipgloss style attributes to rendering style
 func lipglossStyleToRenderingStyle(style lipgloss.Style) Style {
 	var result Style = StyleNone
-	
+
 	// Extract style attributes from lipgloss style
 	// This is a simplified conversion - lipgloss doesn't expose style flags directly
 	// In practice, we might need to inspect the style more carefully
-	
+
 	// For now, return basic style
 	// TODO: Implement proper style extraction from lipgloss.Style
 	return result
@@ -165,7 +165,7 @@ func DrawablesToGlyphs(drawables []systems.Drawable, width, height int) [][]Glyp
 			matrix[i][j] = Glyph{Alpha: 1.0}
 		}
 	}
-	
+
 	// Place drawables in matrix
 	for _, drawable := range drawables {
 		x, y := drawable.X, drawable.Y
@@ -173,6 +173,6 @@ func DrawablesToGlyphs(drawables []systems.Drawable, width, height int) [][]Glyp
 			matrix[y][x] = DrawableToGlyph(drawable)
 		}
 	}
-	
+
 	return matrix
 }

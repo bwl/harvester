@@ -1,6 +1,7 @@
 package systems
 
 import (
+	"github.com/charmbracelet/harmonica"
 	"harvester/pkg/components"
 	"harvester/pkg/data"
 	"harvester/pkg/ecs"
@@ -35,10 +36,38 @@ func (s FuelSystem) Update(dt float64, w *ecs.World) {
 type SpaceMovement struct{}
 
 func (s SpaceMovement) Update(dt float64, w *ecs.World) {
+	const angW, angZ = 6.0, 0.6
+	const thrW, thrZ = 5.0, 0.7
+	const velW, velZ = 6.0, 0.6
+	spAngle := harmonica.NewSpring(harmonica.FPS(60), angW, angZ)
+	spThrust := harmonica.NewSpring(harmonica.FPS(60), thrW, thrZ)
+	spVel := harmonica.NewSpring(harmonica.FPS(60), velW, velZ)
 	ecs.View2Of[components.Position, components.Velocity](w).Each(func(t ecs.Tuple2[components.Position, components.Velocity]) {
-		t.A.X += t.B.VX * dt
-		t.A.Y += t.B.VY * dt
+		// fetch springs and input/orientation
+		spr, _ := ecs.Get[components.SpaceFlightSprings](w, t.E)
+		inp, _ := ecs.Get[components.Input](w, t.E)
+		// update springs
+		spr.Angle.Pos, spr.Angle.Vel = spAngle.Update(spr.Angle.Pos, spr.Angle.Vel, spr.Angle.Target)
+		spr.Thrust.Pos, spr.Thrust.Vel = spThrust.Update(spr.Thrust.Pos, spr.Thrust.Vel, spr.Thrust.Target)
+		if inp.Down {
+			spr.VelX.Target, spr.VelY.Target = 0, 0
+		}
+		spr.VelX.Pos, spr.VelX.Vel = spVel.Update(spr.VelX.Pos, spr.VelX.Vel, spr.VelX.Target)
+		spr.VelY.Pos, spr.VelY.Vel = spVel.Update(spr.VelY.Pos, spr.VelY.Vel, spr.VelY.Target)
+		// physics integration: accel from thrust+angle
+		ax := spr.Thrust.Pos * cos(spr.Angle.Pos)
+		ay := spr.Thrust.Pos * sin(spr.Angle.Pos)
+		vx := t.B.VX + ax*dt
+		vy := t.B.VY + ay*dt
+		// apply velocity springs as damping toward targets
+		vx, _ = spVel.Update(vx, 0, spr.VelX.Pos)
+		vy, _ = spVel.Update(vy, 0, spr.VelY.Pos)
+		t.A.X += vx * dt
+		t.A.Y += vy * dt
+		t.B.VX, t.B.VY = vx, vy
 		ecs.Add(w, t.E, *t.A)
+		ecs.Add(w, t.E, *t.B)
+		ecs.Add(w, t.E, spr)
 	})
 }
 

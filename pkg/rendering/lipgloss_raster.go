@@ -5,7 +5,11 @@ package rendering
 // Colors: 38;2;r;g;b (fg truecolor), 48;2;r;g;b (bg truecolor)
 func RenderLipglossString(lines []string, defaultFG Color, defaultBG Color, defaultStyle Style) [][]Glyph {
 	maxW := 0
-	for _, s := range lines { if lw := len([]rune(s)); lw > maxW { maxW = lw } }
+	for _, s := range lines {
+		if lw := len([]rune(s)); lw > maxW {
+			maxW = lw
+		}
+	}
 	m := make([][]Glyph, len(lines))
 	for y, s := range lines {
 		row := make([]Glyph, maxW)
@@ -22,13 +26,32 @@ func RenderLipglossString(lines []string, defaultFG Color, defaultBG Color, defa
 				acc := false
 				for i < len(in) {
 					r := in[i]
-					if r >= '0' && r <= '9' { v = v*10 + int(r-'0'); acc = true; i++; continue }
-					if r == ';' { params = append(params, v); v = 0; acc = false; i++; continue }
-					if r == 'm' { if acc || len(params)==0 { params = append(params, v) }; i++; break }
+					if r >= '0' && r <= '9' {
+						v = v*10 + int(r-'0')
+						acc = true
+						i++
+						continue
+					}
+					if r == ';' {
+						params = append(params, v)
+						v = 0
+						acc = false
+						i++
+						continue
+					}
+					if r == 'm' {
+						if acc || len(params) == 0 {
+							params = append(params, v)
+						}
+						i++
+						break
+					}
 					// unknown, break
 					i++
 				}
-				if len(params) == 0 { continue }
+				if len(params) == 0 {
+					continue
+				}
 				// handle params
 				for p := 0; p < len(params); p++ {
 					sw := params[p]
@@ -47,12 +70,12 @@ func RenderLipglossString(lines []string, defaultFG Color, defaultBG Color, defa
 						st |= StyleReverse
 					case 38:
 						if p+4 < len(params) && params[p+1] == 2 {
-							fg = Color{R:uint8(params[p+2]), G:uint8(params[p+3]), B:uint8(params[p+4])}
+							fg = Color{R: uint8(params[p+2]), G: uint8(params[p+3]), B: uint8(params[p+4])}
 							p += 4
 						}
 					case 48:
 						if p+4 < len(params) && params[p+1] == 2 {
-							bg = Color{R:uint8(params[p+2]), G:uint8(params[p+3]), B:uint8(params[p+4])}
+							bg = Color{R: uint8(params[p+2]), G: uint8(params[p+3]), B: uint8(params[p+4])}
 							p += 4
 						}
 					}
@@ -65,7 +88,9 @@ func RenderLipglossString(lines []string, defaultFG Color, defaultBG Color, defa
 			x++
 		}
 		// pad remainder
-		for ; x < maxW; x++ { row[x] = Glyph{Char: ' ', Foreground: fg, Background: bg, Style: st, Alpha: 1.0} }
+		for ; x < maxW; x++ {
+			row[x] = Glyph{Char: ' ', Foreground: fg, Background: bg, Style: st, Alpha: 1.0}
+		}
 		m[y] = row
 	}
 	return m

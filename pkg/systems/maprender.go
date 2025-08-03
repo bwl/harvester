@@ -25,13 +25,17 @@ type Theme struct {
 
 func getThemeForBiome(biome int) Theme {
 	m := map[components.TileType]lipgloss.Style{
-		components.TileGalaxy:   lipgloss.NewStyle().Foreground(lipgloss.Color("99")),
-		components.TileStar:     lipgloss.NewStyle().Foreground(lipgloss.Color("208")), // orange
-		components.TilePlanet:   lipgloss.NewStyle().Foreground(lipgloss.Color("33")),
-		components.TileForest:   lipgloss.NewStyle().Foreground(lipgloss.Color("226")), // yellow
-		components.TileMountain: lipgloss.NewStyle().Foreground(lipgloss.Color("244")),
-		components.TileRiver:    lipgloss.NewStyle().Foreground(lipgloss.Color("27")), // blue
-		components.TileLava:     lipgloss.NewStyle().Foreground(lipgloss.Color("196")),
+		components.TileGalaxy:     lipgloss.NewStyle().Foreground(lipgloss.Color("99")),
+		components.TileStar:       lipgloss.NewStyle().Foreground(lipgloss.Color("208")), // orange
+		components.TilePlanet:     lipgloss.NewStyle().Foreground(lipgloss.Color("33")),
+		components.TileForest:     lipgloss.NewStyle().Foreground(lipgloss.Color("226")), // yellow
+		components.TileMountain:   lipgloss.NewStyle().Foreground(lipgloss.Color("244")),
+		components.TileRiver:      lipgloss.NewStyle().Foreground(lipgloss.Color("27")), // blue
+		components.TileLava:       lipgloss.NewStyle().Foreground(lipgloss.Color("196")),
+		components.TileNebula:     lipgloss.NewStyle().Foreground(lipgloss.Color("141")), // magenta
+		components.TileGalaxyCore: lipgloss.NewStyle().Foreground(lipgloss.Color("219")).Bold(true),
+		components.TileAsteroid:   lipgloss.NewStyle().Foreground(lipgloss.Color("245")),
+		components.TileComet:      lipgloss.NewStyle().Foreground(lipgloss.Color("123")),
 	}
 	return Theme{styles: m}
 }
@@ -67,53 +71,59 @@ func (m *MapRender) Update(dt float64, w *ecs.World) {
 	ctx := ecs.GetWorldContext(w)
 	out := m.Output[:0]
 	th := getThemeForBiome(ctx.BiomeType)
-	
+
 	// Render tiles with optional transparency
 	ecs.View2Of[components.Position, components.Tile](w).Each(func(t ecs.Tuple2[components.Position, components.Tile]) {
 		style := th.GetStyle(t.B.Type)
 		alpha := 1.0 // Default opaque
 		blendMode := components.BlendNormal
-		
+
 		// Check for transparency component
 		if trans, ok := ecs.Get[components.Transparency](w, t.E); ok {
 			alpha = trans.Alpha
 			blendMode = trans.BlendMode
 		}
-		
+
 		out = append(out, Drawable{
-			X: int(t.A.X), Y: int(t.A.Y), 
-			Glyph: t.B.Glyph, 
-			Style: style,
-			Alpha: alpha,
+			X: int(t.A.X), Y: int(t.A.Y),
+			Glyph:     t.B.Glyph,
+			Style:     style,
+			Alpha:     alpha,
 			BlendMode: blendMode,
 		})
 	})
-	
+
 	// Render entities with optional transparency
 	ecs.View2Of[components.Position, components.Renderable](w).Each(func(t ecs.Tuple2[components.Position, components.Renderable]) {
 		style := th.GetStyle(t.B.TileType)
 		alpha := 1.0
 		blendMode := components.BlendNormal
-		
+
+		// Player pulse background using PulseSpring
+		if _, isPlayer := ecs.Get[components.Player](w, t.E); isPlayer {
+			if ps, ok := ecs.Get[components.PulseSpring](w, t.E); ok {
+				c := 255 - int(255*ps.Pos)
+				bg := lipgloss.Color(strconv.Itoa(c))
+				style = style.Background(bg)
+			}
+		}
 		// Check for transparency component
 		if trans, ok := ecs.Get[components.Transparency](w, t.E); ok {
 			alpha = trans.Alpha
 			blendMode = trans.BlendMode
 		}
-		
 		// Apply style modifiers
 		if t.B.StyleMod != nil {
 			style = applyColorModifier(style, t.B.StyleMod, dt)
 		}
-		
 		out = append(out, Drawable{
-			X: int(t.A.X), Y: int(t.A.Y), 
-			Glyph: t.B.Glyph, 
-			Style: style,
-			Alpha: alpha,
+			X: int(t.A.X), Y: int(t.A.Y),
+			Glyph:     t.B.Glyph,
+			Style:     style,
+			Alpha:     alpha,
 			BlendMode: blendMode,
 		})
 	})
-	
+
 	m.Output = out
 }

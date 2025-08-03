@@ -12,22 +12,47 @@ type Control struct{ Entity ecs.Entity }
 type EnterPlanet struct{}
 
 func (InputSystem) Update(dt float64, w *ecs.World) {
-	// translate Input -> Velocity for all layers
-	ecs.View2Of[components.Input, components.Velocity](w).Each(func(t ecs.Tuple2[components.Input, components.Velocity]) {
-		vx, vy := 0.0, 0.0
+	const thrustRamp = 40.0
+	const thrustDecay = 20.0
+	const turnRate = 2.5
+	ctx := ecs.GetWorldContext(w)
+	isSpace := ctx.CurrentLayer == ecs.LayerSpace
+	if isSpace {
+		ecs.View1Of[components.Input](w).Each(func(e ecs.Entity, in *components.Input) {
+			spr, _ := ecs.Get[components.SpaceFlightSprings](w, e)
+			if in.Up {
+				spr.Thrust.Target = 100
+			} else {
+				spr.Thrust.Target = 0
+			}
+			if in.Left {
+				spr.Angle.Target -= turnRate
+			} else if in.Right {
+				spr.Angle.Target += turnRate
+			}
+			if in.Down {
+				spr.VelX.Target, spr.VelY.Target = 0, 0
+			}
+			ecs.Add(w, e, spr)
+		})
+		return
+	}
+	// non-space fallback
+	ecs.View2Of[components.Input, components.Acceleration](w).Each(func(t ecs.Tuple2[components.Input, components.Acceleration]) {
+		ax, ay := 0.0, 0.0
 		if t.A.Left {
-			vx = -1
+			ax -= thrustRamp
 		}
 		if t.A.Right {
-			vx = 1
+			ax += thrustRamp
 		}
 		if t.A.Up {
-			vy = -1
+			ay -= thrustRamp
 		}
 		if t.A.Down {
-			vy = 1
+			ay += thrustRamp
 		}
-		t.B.VX, t.B.VY = vx, vy
+		t.B.AX, t.B.AY = ax, ay
 		ecs.Add(w, t.E, *t.B)
 	})
 }

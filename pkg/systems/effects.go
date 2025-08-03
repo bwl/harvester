@@ -20,7 +20,7 @@ func (f *FadeEffectSystem) Update(dt float64, w *ecs.World) {
 	ecs.View1Of[FadeEffect](w).Each(func(e ecs.Entity, fade *FadeEffect) {
 		fade.Elapsed += dt
 		progress := fade.Elapsed / fade.Duration
-		
+
 		if progress >= 1.0 {
 			// Animation complete
 			finalAlpha := fade.EndAlpha
@@ -52,11 +52,11 @@ type DecayTimer struct {
 func (d *DecaySystem) Update(dt float64, w *ecs.World) {
 	ecs.View1Of[DecayTimer](w).Each(func(e ecs.Entity, timer *DecayTimer) {
 		timer.Elapsed += dt
-		
+
 		// Fade out over time
 		fadeProgress := timer.Elapsed / timer.Duration
 		alpha := 1.0 - fadeProgress
-		
+
 		if alpha <= 0 {
 			// Remove completely decayed entity
 			w.Destroy(e)
@@ -76,7 +76,7 @@ func (d *DecaySystem) Update(dt float64, w *ecs.World) {
 // CreateFog creates a fog entity with transparency
 func CreateFog(world *ecs.World, x, y float64, intensity float64) ecs.Entity {
 	fogEntity := world.Create()
-	
+
 	ecs.Add(world, fogEntity, components.Position{X: x, Y: y})
 	ecs.Add(world, fogEntity, components.Tile{
 		Glyph: '░',
@@ -86,24 +86,24 @@ func CreateFog(world *ecs.World, x, y float64, intensity float64) ecs.Entity {
 		Alpha:     0.3 * intensity, // Intensity affects opacity
 		BlendMode: components.BlendNormal,
 	})
-	
+
 	return fogEntity
 }
 
 // CreateSmoke creates a smoke entity with additive blending
 func CreateSmoke(world *ecs.World, x, y float64, intensity float64) ecs.Entity {
 	smokeEntity := world.Create()
-	
+
 	ecs.Add(world, smokeEntity, components.Position{X: x, Y: y})
 	ecs.Add(world, smokeEntity, components.Renderable{
 		Glyph:    '▒',
 		TileType: components.TileForest, // Reuse existing tile type for now
 	})
 	ecs.Add(world, smokeEntity, components.Transparency{
-		Alpha:     0.4 * intensity, // Intensity affects opacity
+		Alpha:     0.4 * intensity,          // Intensity affects opacity
 		BlendMode: components.BlendAdditive, // Smoke adds to background
 	})
-	
+
 	return smokeEntity
 }
 
@@ -114,7 +114,7 @@ func StartFadeOut(world *ecs.World, entity ecs.Entity, duration float64) {
 	if trans, ok := ecs.Get[components.Transparency](world, entity); ok {
 		startAlpha = trans.Alpha
 	}
-	
+
 	ecs.Add(world, entity, FadeEffect{
 		StartAlpha: startAlpha,
 		EndAlpha:   0.0,
@@ -130,7 +130,7 @@ func StartFadeIn(world *ecs.World, entity ecs.Entity, duration float64) {
 	if trans, ok := ecs.Get[components.Transparency](world, entity); ok {
 		startAlpha = trans.Alpha
 	}
-	
+
 	ecs.Add(world, entity, FadeEffect{
 		StartAlpha: startAlpha,
 		EndAlpha:   1.0,

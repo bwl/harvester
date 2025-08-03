@@ -46,20 +46,20 @@ func (t TerrainGen) Update(dt float64, w *ecs.World) {
 		ecs.Add(w, e, components.Position{X: float64(x0), Y: float64(y)})
 		ecs.Add(w, e, components.Tile{Glyph: '~', Type: components.TileRiver})
 		ecs.Add(w, e, components.RiverTag{})
-		
+
 		// Make river slightly transparent to show terrain underneath
 		ecs.Add(w, e, components.Transparency{
 			Alpha:     0.8, // 80% opacity - slightly see-through
 			BlendMode: components.BlendNormal,
 		})
 	}
-	
+
 	// Add some fog patches for atmosphere
 	fogCount := int(r.Int63() % 5) // 0-4 fog patches
 	for i := 0; i < fogCount; i++ {
 		fx := int(r.Int63() % int64(wi.Width))
 		fy := int(r.Int63() % int64(wi.Height))
-		
+
 		// Create a small fog patch (3x3 area)
 		for dy := -1; dy <= 1; dy++ {
 			for dx := -1; dx <= 1; dx++ {
