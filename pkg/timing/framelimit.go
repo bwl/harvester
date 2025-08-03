@@ -4,14 +4,16 @@ import (
 	"time"
 )
 
-type FrameLimiter struct{
+type FrameLimiter struct {
 	interval time.Duration
-	last time.Time
+	last     time.Time
 }
 
 func NewFrameLimiter(fps int) *FrameLimiter {
-	if fps <= 0 { fps = 60 }
-	return &FrameLimiter{ interval: time.Second / time.Duration(fps) }
+	if fps <= 0 {
+		fps = 60
+	}
+	return &FrameLimiter{interval: time.Second / time.Duration(fps)}
 }
 
 func (f *FrameLimiter) Allow() bool {

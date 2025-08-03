@@ -39,9 +39,7 @@ func View3Of[A any, B any, C any](w *World) View3[A, B, C] {
 	return View3[A, B, C]{as: storeOf[A](w), bs: storeOf[B](w), cs: storeOf[C](w)}
 }
 
-func (v View1[A]) Each(fn func(e Entity, a *A)) {
-	v.as.ForEach(func(e Entity, a *A) { fn(e, a) })
-}
+func (v View1[A]) Each(fn func(e Entity, a *A)) { v.as.ForEach(func(e Entity, a *A) { fn(e, a) }) }
 
 func (v View2[A, B]) Each(fn func(t Tuple2[A, B])) {
 	v.as.ForEach(func(e Entity, a *A) {

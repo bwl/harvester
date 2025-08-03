@@ -28,13 +28,18 @@ func New(r *rand.Rand) Bootstrap {
 	ecs.Add(w, p, components.Renderable{Glyph: '@', TileType: components.TileStar})
 	ecs.Add(w, p, components.Input{})
 	ecs.Add(w, p, components.Velocity{})
+	ecs.Add(w, p, components.Acceleration{})
 	ecs.Add(w, p, components.FuelTank{Current: 100})
+	ecs.Add(w, p, components.Orientation{})
+	ecs.Add(w, p, components.Thrust{})
+	ecs.Add(w, p, components.SpaceFlightSprings{})
+	ecs.Add(w, p, components.PulseSpring{Target: 1})
 
 	// Create camera system with player as target
 	camera := &systems.CameraSystem{Target: p}
 
 	reg := ecs.SystemRegistry{
-		UniversalSystems: []ecs.System{systems.InputSystem{}, systems.Tick{}, camera, systems.LevelManager{}, mapRender, render},
+		UniversalSystems: []ecs.System{systems.InputSystem{}, &systems.PulseSystem{}, systems.Tick{}, camera, systems.LevelManager{}, mapRender, render},
 		SpaceSystems:     []ecs.System{systems.SpaceMovement{}, systems.FuelSystem{}, systems.PlanetApproachSystem{}, systems.PlanetSelection{}},
 		SurfaceSystems:   []ecs.System{systems.SurfaceHeartbeat{}, systems.TerrainGen{}, systems.SurfaceMovement{}, systems.DepthProgression{}, systems.WeatherTick{}, systems.RiverFlow{}, systems.TradeRoutePatrols{}, systems.WildlifeSpawn{}, systems.KingdomGuards{}, systems.QuestSystem{}},
 	}

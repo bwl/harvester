@@ -13,6 +13,10 @@ const (
 	TileMountain
 	TileRiver
 	TileLava
+	TileNebula
+	TileGalaxyCore
+	TileAsteroid
+	TileComet
 )
 
 type SpecialEffect int

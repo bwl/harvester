@@ -8,10 +8,10 @@ type Transparency struct {
 type BlendMode int
 
 const (
-	BlendNormal BlendMode = iota // Standard alpha blending
-	BlendAdditive                // Add colors together
-	BlendMultiply                // Multiply colors
-	BlendScreen                  // Screen blend mode
+	BlendNormal   BlendMode = iota // Standard alpha blending
+	BlendAdditive                  // Add colors together
+	BlendMultiply                  // Multiply colors
+	BlendScreen                    // Screen blend mode
 )
 
 // Helper constructors

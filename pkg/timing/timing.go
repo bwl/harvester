@@ -1,8 +1,8 @@
 package timing
 
 import (
-	"time"
 	"github.com/charmbracelet/harmonica"
+	"time"
 )
 
 // Animation constants
