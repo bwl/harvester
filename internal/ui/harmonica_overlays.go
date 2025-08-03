@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/harmonica"
 	"harvester/pkg/components"
 	"harvester/pkg/rendering"
+	"harvester/pkg/timing"
 )
 
 // FadeOverlay creates a simple alpha fade effect using harmonica
@@ -36,7 +37,7 @@ func (f *FadeOverlay) GetGlyphs() [][]rendering.Glyph {
 	glyphs := make([][]rendering.Glyph, f.height)
 	
 	// Use harmonica spring for smooth fade with subtle overshoot
-	spring := harmonica.NewSpring(harmonica.FPS(60), 6.0, 0.3)
+	spring := harmonica.NewSpring(timing.HarmonicaFPS, 6.0, 0.3)
 	target := 1.0
 	if f.fadeIn {
 		target = 0.0 // Fade in means reducing the overlay alpha
@@ -212,7 +213,7 @@ func (s *SpringBounceOverlay) GetGlyphs() [][]rendering.Glyph {
 	glyphs := make([][]rendering.Glyph, s.height)
 	
 	// Use harmonica spring with high stiffness and low damping for bouncy effect
-	spring := harmonica.NewSpring(harmonica.FPS(60), 15.0, 0.1) // Very bouncy!
+	spring := harmonica.NewSpring(timing.HarmonicaFPS, 15.0, 0.1) // Very bouncy!
 	pos := s.progress
 	vel := 0.0
 	easedProgress, _ := spring.Update(pos, vel, 1.0)

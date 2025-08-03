@@ -2,6 +2,19 @@ package timing
 
 import (
 	"time"
+	"github.com/charmbracelet/harmonica"
+)
+
+// Animation constants
+const (
+	// TargetFPS is the target frame rate for all animations
+	TargetFPS = 60
+)
+
+// Animation variables
+var (
+	// HarmonicaFPS is the harmonica FPS configuration used throughout the application
+	HarmonicaFPS = harmonica.FPS(TargetFPS)
 )
 
 // GlobalTimer provides centralized timing for the entire application

@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/harmonica"
 	"harvester/pkg/components"
 	"harvester/pkg/rendering"
+	"harvester/pkg/timing"
 )
 
 // CRTShutdownOverlay creates an alpha-masked overlay for CRT shutdown effect
@@ -43,8 +44,8 @@ func (c *CRTShutdownOverlay) GetGlyphs() [][]rendering.Glyph {
 	glyphs := make([][]rendering.Glyph, c.height)
 	
 	// Use harmonica spring for smooth CRT shutdown effect
-	// Spring parameters: fps=60, stiffness=8.0, damping=0.25 for realistic TV shutdown
-	spring := harmonica.NewSpring(harmonica.FPS(60), 8.0, 0.25)
+	// Spring parameters: stiffness=8.0, damping=0.25 for realistic TV shutdown
+	spring := harmonica.NewSpring(timing.HarmonicaFPS, 8.0, 0.25)
 	pos := c.progress
 	vel := 0.0
 	easedProgress, _ := spring.Update(pos, vel, 1.0)
@@ -127,7 +128,7 @@ func (c *CRTOpeningOverlay) GetGlyphs() [][]rendering.Glyph {
 	
 	// Use harmonica spring for smooth CRT opening effect
 	// Different spring parameters: higher stiffness for snappier opening, lower damping for slight overshoot
-	spring := harmonica.NewSpring(harmonica.FPS(60), 12.0, 0.15)
+	spring := harmonica.NewSpring(timing.HarmonicaFPS, 12.0, 0.15)
 	pos := 1.0 - c.progress // Start from 1.0 and ease toward 0.0
 	vel := 0.0
 	maskedProgress, _ := spring.Update(pos, vel, 0.0)
