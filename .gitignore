@@ -5,3 +5,6 @@ vendor/
 .coverage
 *.out
 /.crush/
+.saves/
+game
+tmp_*.txt
