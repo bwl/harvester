@@ -2,6 +2,7 @@ package ui
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"harvester/pkg/ecs"
 	"harvester/pkg/engine"
 	"harvester/pkg/systems"
+	"harvester/pkg/timing"
 )
 
 var mapRender *systems.MapRender
@@ -105,7 +107,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case time.Time:
 		prev := ecs.GetWorldContext(m.world)
 		start := time.Now()
-		
+
 		// Store previous stats for trend calculation
 		if ps, exists := ecs.Get[components.PlayerStats](m.world, m.player); exists {
 			m.prevStats = PlayerStatsData{
@@ -114,12 +116,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Drive: ps.Drive,
 			}
 		}
-		
+
 		m.scheduler.Update(1.0/20.0, m.world)
 		m.frame++ // Increment frame counter for animations
-		
-		wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
-		if int(wi.Tick)%100 == 0 {
+
+		if int(timing.Tick())%100 == 0 {
 			m.saveCompressed()
 		}
 		dur := time.Since(start)
@@ -141,7 +142,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 /* moved to styles.go and layout.go */
 
 func (m *Model) renderStatusBar(w int) string {
-	wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
+	// Get world dimensions for rendering
 	ps, _ := ecs.Get[components.PlayerStats](m.world, m.player)
 	ctx := ecs.GetWorldContext(m.world)
 
@@ -158,17 +159,17 @@ func (m *Model) renderStatusBar(w int) string {
 	}
 
 	info := GameInfoData{
-		Tick: int(wi.Tick),
+		Tick: int(timing.Tick()),
 	}
 
 	// Use advanced stats with trends and animations
-	left := lipgloss.JoinHorizontal(lipgloss.Center, 
-		LocationComponent(location), 
-		Muted("  |  "), 
+	left := lipgloss.JoinHorizontal(lipgloss.Center,
+		LocationComponent(location),
+		Muted("  |  "),
 		GameInfoComponent(info))
-	
+
 	right := AdvancedPlayerStatsComponent(currentStats, m.prevStats, m.frame)
-	
+
 	return NewStyleBuilder().
 		Width(w).
 		Background(GetCurrentTheme().Bg).
@@ -181,8 +182,6 @@ func (m *Model) renderStatusBar(w int) string {
 		))
 }
 
-
-
 func (m *Model) renderRightPanel() string {
 	ctx := ecs.GetWorldContext(m.world)
 	layout := m.layoutManager.GetLayout()
@@ -190,9 +189,9 @@ func (m *Model) renderRightPanel() string {
 
 	// Dynamic quest panel with state-aware styling
 	questData := QuestPanelData{
-		Status: royalCharterStatus(ctx.QuestProgress),
+		Status: fmt.Sprintf("%d/%d contracts", ctx.QuestProgress.ContractsCollected, ctx.QuestProgress.ContractsNeeded),
 	}
-	
+
 	// Determine quest state based on progress
 	questState := StateNormal
 	if ctx.QuestProgress.RoyalCharterComplete {
@@ -353,16 +352,16 @@ func (m Model) View() string {
 	if h == 0 {
 		h = 40
 	}
-	
+
 	// Get layout dimensions
 	layout := m.layoutManager.GetLayout()
 	dims := layout.Calculate()
-	
+
 	// Render components
 	mapStr := m.renderMap(dims.MapWidth, dims.MapHeight)
 	rightStr := m.renderRightPanel()
 	status := m.renderStatusBar(dims.ContentWidth)
-	
+
 	// Convert log to LogMessage format for enhanced styling
 	var logMessages []LogMessage
 	for _, logLine := range m.log {
@@ -372,6 +371,6 @@ func (m Model) View() string {
 		})
 	}
 	logStr := LogPanel(logMessages, dims.LogWidth)
-	
+
 	return m.renderUI(mapStr, rightStr, status, logStr)
 }
