@@ -31,7 +31,7 @@ func TestTransparencyComponent(t *testing.T) {
 func TestMapRenderWithTransparency(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	world := ecs.NewWorld(r)
-	
+
 	// Create entity with transparency
 	entity := world.Create()
 	ecs.Add(world, entity, components.Position{X: 5, Y: 5})
@@ -65,7 +65,7 @@ func TestMapRenderWithTransparency(t *testing.T) {
 func TestMapRenderWithoutTransparency(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	world := ecs.NewWorld(r)
-	
+
 	// Create entity without transparency
 	entity := world.Create()
 	ecs.Add(world, entity, components.Position{X: 5, Y: 5})
@@ -95,7 +95,7 @@ func TestMapRenderWithoutTransparency(t *testing.T) {
 func TestFadeEffect(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	world := ecs.NewWorld(r)
-	
+
 	// Create entity with fade effect
 	entity := world.Create()
 	ecs.Add(world, entity, FadeEffect{
@@ -107,10 +107,10 @@ func TestFadeEffect(t *testing.T) {
 
 	// Create fade system
 	fadeSystem := &FadeEffectSystem{}
-	
+
 	// Update partway through animation
 	fadeSystem.Update(1.0, world) // 1 second elapsed, halfway
-	
+
 	// Check transparency was added
 	if trans, ok := ecs.Get[components.Transparency](world, entity); ok {
 		expectedAlpha := 0.5 // Halfway between 1.0 and 0.0
@@ -120,10 +120,10 @@ func TestFadeEffect(t *testing.T) {
 	} else {
 		t.Error("Expected transparency component to be added")
 	}
-	
+
 	// Update to completion
 	fadeSystem.Update(1.0, world) // Another 1 second, total 2 seconds
-	
+
 	// Check final alpha
 	if trans, ok := ecs.Get[components.Transparency](world, entity); ok {
 		if trans.Alpha != 0.0 {
@@ -132,7 +132,7 @@ func TestFadeEffect(t *testing.T) {
 	} else {
 		t.Error("Expected transparency component to remain")
 	}
-	
+
 	// Check fade effect was removed
 	if _, ok := ecs.Get[FadeEffect](world, entity); ok {
 		t.Error("Expected fade effect to be removed after completion")
@@ -142,10 +142,10 @@ func TestFadeEffect(t *testing.T) {
 func TestHelperFunctions(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	world := ecs.NewWorld(r)
-	
+
 	// Test CreateFog
 	fogEntity := CreateFog(world, 10, 10, 0.8)
-	
+
 	if pos, ok := ecs.Get[components.Position](world, fogEntity); ok {
 		if pos.X != 10 || pos.Y != 10 {
 			t.Errorf("Expected position (10, 10), got (%f, %f)", pos.X, pos.Y)
@@ -153,7 +153,7 @@ func TestHelperFunctions(t *testing.T) {
 	} else {
 		t.Error("Expected fog entity to have position")
 	}
-	
+
 	if trans, ok := ecs.Get[components.Transparency](world, fogEntity); ok {
 		expectedAlpha := 0.3 * 0.8 // intensity affects opacity
 		if trans.Alpha != expectedAlpha {
@@ -162,10 +162,10 @@ func TestHelperFunctions(t *testing.T) {
 	} else {
 		t.Error("Expected fog entity to have transparency")
 	}
-	
+
 	// Test StartFadeOut
 	StartFadeOut(world, fogEntity, 1.0)
-	
+
 	if fade, ok := ecs.Get[FadeEffect](world, fogEntity); ok {
 		if fade.Duration != 1.0 {
 			t.Errorf("Expected fade duration 1.0, got %f", fade.Duration)

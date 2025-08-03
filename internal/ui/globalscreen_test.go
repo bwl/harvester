@@ -51,16 +51,16 @@ func TestGlobalScreenRenderableInterface(t *testing.T) {
 		t.Error("GlobalScreen should implement RenderableScreen interface")
 	}
 
-	// Test with actual ViewRenderer  
+	// Test with actual ViewRenderer
 	renderer := rendering.NewViewRenderer(80, 10)
-	
+
 	// Should not panic when registering content
 	gs.RegisterContent(renderer)
 
 	// Test with shutdown animation
 	gs.shutdownAnim = timing.NewAnimation(10, false)
 	gs.RegisterContent(renderer)
-	
+
 	// Should complete without errors (overlay registration tested elsewhere)
 }
 
@@ -109,12 +109,13 @@ func TestGlobalScreenGameTransition(t *testing.T) {
 	newModel, _ := gs.handleStartScreenResult(result)
 
 	updatedGS := newModel.(*GlobalScreen)
-	if !updatedGS.transitioning {
-		t.Error("Should be transitioning after start screen result")
+	// Transitions are now completed immediately
+	if updatedGS.transitioning {
+		t.Error("Should not be transitioning after completion")
 	}
 
-	if updatedGS.nextScreen != ScreenSpace {
-		t.Error("Should be transitioning to space screen")
+	if updatedGS.currentScreen != ScreenSpace {
+		t.Error("Should have transitioned to space screen")
 	}
 }
 

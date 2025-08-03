@@ -12,8 +12,13 @@ func TestSpaceMovementTick(t *testing.T) {
 	bs := engine.New(rand.New(rand.NewSource(1)))
 	w := bs.World
 	p := bs.Player
-	ecs.Add(w, p, components.Input{Right: true})
-	bs.Scheduler.Update(0.05, w)
+	ctx := ecs.GetWorldContext(w)
+	ctx.CurrentLayer = ecs.LayerSpace
+	ecs.SetWorldContext(w, ctx)
+	ecs.Add(w, p, components.Input{Up: true})
+	for i := 0; i < 40; i++ {
+		bs.Scheduler.Update(0.05, w)
+	}
 	pos, _ := ecs.Get[components.Position](w, p)
 	if pos.X <= 0 {
 		t.Fatalf("expected movement, got %v", pos.X)

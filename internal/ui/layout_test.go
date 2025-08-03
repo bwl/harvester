@@ -18,12 +18,7 @@ func TestNewLayout(t *testing.T) {
 	if layout.Margin != 2 {
 		t.Error("Default margin should be 2")
 	}
-	if layout.RightPanelWidth != 30 {
-		t.Error("Default right panel width should be 30")
-	}
-	if layout.BottomPanelHeight != 5 {
-		t.Error("Default bottom panel height should be 5")
-	}
+	// no sidebars anymore
 }
 
 func TestLayoutCalculate(t *testing.T) {
@@ -41,9 +36,9 @@ func TestLayoutCalculate(t *testing.T) {
 		t.Errorf("Expected content height %d, got %d", expectedContentHeight, dims.ContentHeight)
 	}
 
-	// Map should account for right panel and bottom panel
-	expectedMapWidth := expectedContentWidth - 30  // content width - right panel
-	expectedMapHeight := expectedContentHeight - 5 // content height - bottom panel
+	// Map should fill content
+	expectedMapWidth := expectedContentWidth
+	expectedMapHeight := expectedContentHeight
 
 	if dims.MapWidth != expectedMapWidth {
 		t.Errorf("Expected map width %d, got %d", expectedMapWidth, dims.MapWidth)
@@ -72,36 +67,18 @@ func TestLayoutPresets(t *testing.T) {
 
 	// Test Full preset
 	layout.ApplyPreset(LayoutFull)
-	if layout.RightPanelWidth != 30 {
-		t.Error("Full preset should set right panel width to 30")
-	}
-	if layout.BottomPanelHeight != 5 {
-		t.Error("Full preset should set bottom panel height to 5")
-	}
 	if layout.Margin != 2 {
 		t.Error("Full preset should set margin to 2")
 	}
 
 	// Test Compact preset
 	layout.ApplyPreset(LayoutCompact)
-	if layout.RightPanelWidth != 25 {
-		t.Error("Compact preset should set right panel width to 25")
-	}
-	if layout.BottomPanelHeight != 3 {
-		t.Error("Compact preset should set bottom panel height to 3")
-	}
 	if layout.Margin != 1 {
 		t.Error("Compact preset should set margin to 1")
 	}
 
 	// Test Mobile preset
 	layout.ApplyPreset(LayoutMobile)
-	if layout.RightPanelWidth != 20 {
-		t.Error("Mobile preset should set right panel width to 20")
-	}
-	if layout.BottomPanelHeight != 2 {
-		t.Error("Mobile preset should set bottom panel height to 2")
-	}
 	if layout.Margin != 0 {
 		t.Error("Mobile preset should set margin to 0")
 	}
@@ -174,21 +151,21 @@ func TestLayoutManagerAutoResize(t *testing.T) {
 	// Test small screen (should trigger mobile preset)
 	manager.Update(70, 15)
 	layout := manager.GetLayout()
-	if layout.RightPanelWidth != 20 { // Mobile preset value
+	if layout.Margin != 0 { // Mobile preset value
 		t.Error("Auto-resize should apply mobile preset for small screens")
 	}
 
 	// Test medium screen (should trigger compact preset)
 	manager.Update(100, 25)
 	layout = manager.GetLayout()
-	if layout.RightPanelWidth != 25 { // Compact preset value
+	if layout.Margin != 1 { // Compact preset value
 		t.Error("Auto-resize should apply compact preset for medium screens")
 	}
 
 	// Test large screen (should trigger full preset)
 	manager.Update(150, 40)
 	layout = manager.GetLayout()
-	if layout.RightPanelWidth != 30 { // Full preset value
+	if layout.Margin != 2 { // Full preset value
 		t.Error("Auto-resize should apply full preset for large screens")
 	}
 }
@@ -198,11 +175,11 @@ func TestLayoutManagerAutoResizeToggle(t *testing.T) {
 
 	// Disable auto-resize
 	manager.SetAutoResize(false)
-	originalWidth := manager.GetLayout().RightPanelWidth
+	originalWidth := manager.GetLayout().Width
 
 	// Update to small screen
 	manager.Update(70, 15)
-	newWidth := manager.GetLayout().RightPanelWidth
+	newWidth := manager.GetLayout().Width
 
 	if newWidth != originalWidth {
 		t.Error("Auto-resize disabled should not change layout preset")
@@ -211,7 +188,7 @@ func TestLayoutManagerAutoResizeToggle(t *testing.T) {
 	// Re-enable auto-resize
 	manager.SetAutoResize(true)
 	manager.Update(70, 15)
-	finalWidth := manager.GetLayout().RightPanelWidth
+	finalWidth := manager.GetLayout().Width
 
 	if finalWidth == originalWidth {
 		t.Error("Re-enabling auto-resize should apply responsive layout")
@@ -249,11 +226,11 @@ func TestResponsiveBreakpoints(t *testing.T) {
 
 		var actualPreset LayoutPreset
 		switch {
-		case layout.RightPanelWidth == 20:
+		case layout.Margin == 0:
 			actualPreset = LayoutMobile
-		case layout.RightPanelWidth == 25:
+		case layout.Margin == 1:
 			actualPreset = LayoutCompact
-		case layout.RightPanelWidth == 30:
+		case layout.Margin == 2:
 			actualPreset = LayoutFull
 		}
 

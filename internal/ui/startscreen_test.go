@@ -117,17 +117,20 @@ func TestRenderWithoutCrash(t *testing.T) {
 	s.width = 80
 	s.height = 24
 
-	// Should not crash when rendering
-	view := s.View()
-	if view == "" {
-		t.Error("View should return content")
+	// Should not crash when rendering (via compositor)
+	r := NewRootView()
+	_, _ = r.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	r.global.subScreen = s
+	out := r.View()
+	if out == "" {
+		t.Error("RootView should render start screen content")
 	}
-
 	// Test slot view rendering
 	s.showSlots = true
-	slotView := s.View()
-	if slotView == "" {
-		t.Error("Slot view should return content")
+	r.global.subScreen = s
+	out2 := r.View()
+	if out2 == "" {
+		t.Error("RootView should render slot view content")
 	}
 }
 
