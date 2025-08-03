@@ -12,9 +12,11 @@ import (
 type MapRender struct{ Output []Drawable }
 
 type Drawable struct {
-	X, Y  int
-	Glyph rune
-	Style lipgloss.Style
+	X, Y      int
+	Glyph     rune
+	Style     lipgloss.Style
+	Alpha     float64
+	BlendMode components.BlendMode
 }
 
 type Theme struct {
@@ -65,16 +67,53 @@ func (m *MapRender) Update(dt float64, w *ecs.World) {
 	ctx := ecs.GetWorldContext(w)
 	out := m.Output[:0]
 	th := getThemeForBiome(ctx.BiomeType)
+	
+	// Render tiles with optional transparency
 	ecs.View2Of[components.Position, components.Tile](w).Each(func(t ecs.Tuple2[components.Position, components.Tile]) {
 		style := th.GetStyle(t.B.Type)
-		out = append(out, Drawable{X: int(t.A.X), Y: int(t.A.Y), Glyph: t.B.Glyph, Style: style})
+		alpha := 1.0 // Default opaque
+		blendMode := components.BlendNormal
+		
+		// Check for transparency component
+		if trans, ok := ecs.Get[components.Transparency](w, t.E); ok {
+			alpha = trans.Alpha
+			blendMode = trans.BlendMode
+		}
+		
+		out = append(out, Drawable{
+			X: int(t.A.X), Y: int(t.A.Y), 
+			Glyph: t.B.Glyph, 
+			Style: style,
+			Alpha: alpha,
+			BlendMode: blendMode,
+		})
 	})
+	
+	// Render entities with optional transparency
 	ecs.View2Of[components.Position, components.Renderable](w).Each(func(t ecs.Tuple2[components.Position, components.Renderable]) {
 		style := th.GetStyle(t.B.TileType)
+		alpha := 1.0
+		blendMode := components.BlendNormal
+		
+		// Check for transparency component
+		if trans, ok := ecs.Get[components.Transparency](w, t.E); ok {
+			alpha = trans.Alpha
+			blendMode = trans.BlendMode
+		}
+		
+		// Apply style modifiers
 		if t.B.StyleMod != nil {
 			style = applyColorModifier(style, t.B.StyleMod, dt)
 		}
-		out = append(out, Drawable{X: int(t.A.X), Y: int(t.A.Y), Glyph: t.B.Glyph, Style: style})
+		
+		out = append(out, Drawable{
+			X: int(t.A.X), Y: int(t.A.Y), 
+			Glyph: t.B.Glyph, 
+			Style: style,
+			Alpha: alpha,
+			BlendMode: blendMode,
+		})
 	})
+	
 	m.Output = out
 }
