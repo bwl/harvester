@@ -20,35 +20,35 @@ func TestThemeCreation(t *testing.T) {
 func TestThemeSwitching(t *testing.T) {
 	// Store original theme
 	originalTheme := GetCurrentTheme()
-	
+
 	// Test light theme
 	UseLightTheme()
 	lightTheme := GetCurrentTheme()
 	if lightTheme.Bg != lipgloss.Color("255") {
 		t.Error("Light theme should have white background")
 	}
-	
+
 	// Test space theme
 	UseSpaceTheme()
 	spaceTheme := GetCurrentTheme()
 	if spaceTheme.Primary != lipgloss.Color("#6366F1") {
 		t.Error("Space theme should have indigo primary color")
 	}
-	
+
 	// Test planet theme
 	UsePlanetTheme()
 	planetTheme := GetCurrentTheme()
 	if planetTheme.Primary != lipgloss.Color("#059669") {
 		t.Error("Planet theme should have emerald primary color")
 	}
-	
+
 	// Test danger theme
 	UseDangerTheme()
 	dangerTheme := GetCurrentTheme()
 	if dangerTheme.Primary != lipgloss.Color("#DC2626") {
 		t.Error("Danger theme should have red primary color")
 	}
-	
+
 	// Restore original theme
 	SetCustomTheme(originalTheme)
 }
@@ -66,7 +66,7 @@ func TestApplyThemeByName(t *testing.T) {
 		{"nonexistent", false},
 		{"", false},
 	}
-	
+
 	for _, test := range tests {
 		result := ApplyTheme(test.name)
 		if result != test.expected {
@@ -81,22 +81,22 @@ func TestStyleHelperFunctions(t *testing.T) {
 	if panelResult == "" {
 		t.Error("Panel helper should return styled content")
 	}
-	
+
 	borderedResult := Bordered("test content")
 	if borderedResult == "" {
 		t.Error("Bordered helper should return styled content")
 	}
-	
+
 	headerResult := Header("Test Header")
 	if headerResult == "" {
 		t.Error("Header helper should return styled content")
 	}
-	
+
 	mutedResult := Muted("muted text")
 	if mutedResult == "" {
 		t.Error("Muted helper should return styled content")
 	}
-	
+
 	highlightResult := Highlight("highlighted text")
 	if highlightResult == "" {
 		t.Error("Highlight helper should return styled content")
@@ -108,7 +108,7 @@ func TestSizedHelper(t *testing.T) {
 	if result == "" {
 		t.Error("Sized helper should return styled content")
 	}
-	
+
 	// Test with zero dimensions
 	result = Sized(0, 0, "content")
 	if result == "" {
@@ -126,7 +126,7 @@ func TestStatFunction(t *testing.T) {
 		{"Energy", "50", StatWarning},
 		{"Hull", "10", StatDanger},
 	}
-	
+
 	for _, test := range tests {
 		result := Stat(test.label, test.value, test.status)
 		if result == "" {
@@ -147,7 +147,7 @@ func TestGetStatColor(t *testing.T) {
 		{20, 100, StatDanger},  // 20%
 		{0, 100, StatDanger},   // 0%
 	}
-	
+
 	for _, test := range tests {
 		result := GetStatColor(test.current, test.max)
 		if result != test.expected {
@@ -162,13 +162,13 @@ func TestAdvancedHelpers(t *testing.T) {
 	if result == "" {
 		t.Error("PanelWithBorder should return styled content")
 	}
-	
+
 	// Test SizedPanel
 	result = SizedPanel(20, 10, "content")
 	if result == "" {
 		t.Error("SizedPanel should return styled content")
 	}
-	
+
 	// Test StatusBar
 	result = StatusBar(50, "status content")
 	if result == "" {
@@ -178,7 +178,7 @@ func TestAdvancedHelpers(t *testing.T) {
 
 func TestThemeConsistency(t *testing.T) {
 	themes := GetAvailableThemes()
-	
+
 	for name, theme := range themes {
 		// Check that all required colors are defined
 		if theme.Primary == "" {
@@ -211,13 +211,13 @@ func BenchmarkStyleHelpers(b *testing.B) {
 			Panel("test content")
 		}
 	})
-	
+
 	b.Run("Header", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			Header("Test Header")
 		}
 	})
-	
+
 	b.Run("Stat", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			Stat("Label", "Value", StatGood)
@@ -231,7 +231,7 @@ func BenchmarkThemeSwitching(b *testing.B) {
 			UseSpaceTheme()
 		}
 	})
-	
+
 	b.Run("ApplyTheme", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			ApplyTheme("space")

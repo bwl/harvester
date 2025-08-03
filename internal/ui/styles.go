@@ -85,9 +85,9 @@ func UseDarkTheme() {
 	rebuildStyles()
 }
 
-func UseLightTheme() { 
+func UseLightTheme() {
 	theme = lightTheme
-	rebuildStyles() 
+	rebuildStyles()
 }
 
 func GetCurrentTheme() StyleTheme {
@@ -105,8 +105,8 @@ func Bordered(content string) string { return styles.Bordered.Render(content) }
 func Sized(w, h int, content string) string {
 	return lipgloss.NewStyle().Width(w).Height(h).Render(content)
 }
-func Header(text string) string { return styles.Header.Render(text) }
-func Muted(text string) string { return styles.Muted.Render(text) }
+func Header(text string) string    { return styles.Header.Render(text) }
+func Muted(text string) string     { return styles.Muted.Render(text) }
 func Highlight(text string) string { return styles.Highlight.Render(text) }
 
 // Stat status for color-coded stats
@@ -121,7 +121,7 @@ const (
 func Stat(label, value string, status StatStatus) string {
 	labelStyle := styles.Highlight
 	var valueStyle lipgloss.Style
-	
+
 	switch status {
 	case StatGood:
 		valueStyle = lipgloss.NewStyle().Foreground(theme.Success)
@@ -132,7 +132,7 @@ func Stat(label, value string, status StatStatus) string {
 	default:
 		valueStyle = styles.Muted
 	}
-	
+
 	return labelStyle.Render(label) + valueStyle.Render(value)
 }
 
@@ -172,7 +172,7 @@ func StatusBar(w int, content string) string {
 // Theme presets for different moods/contexts
 var spaceTheme = StyleTheme{
 	Primary:       lipgloss.Color("#6366F1"), // Indigo
-	Secondary:     lipgloss.Color("#8B5CF6"), // Violet  
+	Secondary:     lipgloss.Color("#8B5CF6"), // Violet
 	Accent:        lipgloss.Color("#06B6D4"), // Cyan
 	Muted:         lipgloss.Color("#64748B"), // Slate
 	Bg:            lipgloss.Color("#0F172A"), // Dark slate

@@ -7,7 +7,7 @@ type Layout struct {
 	Width  int
 	Height int
 	Margin int
-	
+
 	// Panel dimensions
 	RightPanelWidth   int
 	BottomPanelHeight int
@@ -45,11 +45,11 @@ func (l Layout) Calculate() LayoutDimensions {
 	// Account for margin
 	contentW := l.Width - (l.Margin * 2)
 	contentH := l.Height - (l.Margin * 2)
-	
+
 	// Calculate map dimensions
 	mapW := contentW - l.RightPanelWidth
 	mapH := contentH - l.BottomPanelHeight
-	
+
 	// Ensure minimum sizes
 	if mapW < l.MinMapWidth {
 		mapW = l.MinMapWidth
@@ -57,7 +57,7 @@ func (l Layout) Calculate() LayoutDimensions {
 	if mapH < l.MinMapHeight {
 		mapH = l.MinMapHeight
 	}
-	
+
 	return LayoutDimensions{
 		ContentWidth:  contentW,
 		ContentHeight: contentH,
@@ -100,10 +100,10 @@ func (l *Layout) ApplyPreset(preset LayoutPreset) {
 // Validate ensures the layout dimensions are reasonable
 func (l Layout) Validate() bool {
 	dims := l.Calculate()
-	return dims.MapWidth >= l.MinMapWidth && 
-		   dims.MapHeight >= l.MinMapHeight &&
-		   dims.ContentWidth > 0 &&
-		   dims.ContentHeight > 0
+	return dims.MapWidth >= l.MinMapWidth &&
+		dims.MapHeight >= l.MinMapHeight &&
+		dims.ContentWidth > 0 &&
+		dims.ContentHeight > 0
 }
 
 // LayoutManager handles responsive layout adjustments
@@ -124,7 +124,7 @@ func NewLayoutManager(width, height int) *LayoutManager {
 func (lm *LayoutManager) Update(width, height int) {
 	lm.currentLayout.Width = width
 	lm.currentLayout.Height = height
-	
+
 	if lm.autoResize {
 		lm.applyResponsiveLayout()
 	}
@@ -133,7 +133,7 @@ func (lm *LayoutManager) Update(width, height int) {
 // applyResponsiveLayout automatically adjusts layout based on screen size
 func (lm *LayoutManager) applyResponsiveLayout() {
 	w, h := lm.currentLayout.Width, lm.currentLayout.Height
-	
+
 	// Very small screens
 	if w < 80 || h < 20 {
 		lm.currentLayout.ApplyPreset(LayoutMobile)
@@ -159,18 +159,18 @@ func (lm *LayoutManager) SetAutoResize(enabled bool) {
 // RenderWithLayout renders content using the layout system
 func (lm *LayoutManager) RenderWithLayout(mapStr, rightStr, statusStr, logStr string) string {
 	dims := lm.currentLayout.Calculate()
-	
+
 	mapPanel := Sized(dims.MapWidth, dims.MapHeight, mapStr)
 	rightPanel := Sized(dims.RightWidth, 0, rightStr)
-	
+
 	main := lipgloss.JoinHorizontal(lipgloss.Top, mapPanel, rightPanel)
-	
+
 	content := lipgloss.JoinVertical(lipgloss.Left,
 		statusStr,
 		main,
 		Sized(dims.LogWidth, 0, logStr),
 	)
-	
+
 	return lipgloss.NewStyle().
 		Margin(lm.currentLayout.Margin).
 		Render(content)

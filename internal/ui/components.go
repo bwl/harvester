@@ -25,7 +25,7 @@ func StatusBarComponent(w int, sections []StatusSection) string {
 			parts = append(parts, section.Label+section.Value)
 		}
 	}
-	
+
 	content := strings.Join(parts, Muted("  |  "))
 	return StatusBar(w, content)
 }
@@ -56,32 +56,32 @@ type ControlsGroup struct {
 
 func ControlsPanel(groups []ControlsGroup) string {
 	sections := []string{Header("╭─ CONTROLS ─╮")}
-	
+
 	for i, group := range groups {
 		if i > 0 {
 			sections = append(sections, "")
 		}
-		
+
 		sections = append(sections, Muted(group.Title+":"))
 		for _, item := range group.Items {
 			sections = append(sections, "  "+Highlight(item.Key)+" "+Muted(item.Description))
 		}
 	}
-	
+
 	return lipgloss.JoinVertical(lipgloss.Left, sections...)
 }
 
 // MapPanel component with optional border
 type MapPanelOptions struct {
-	Width    int
-	Height   int
-	Border   bool
-	Title    string
+	Width  int
+	Height int
+	Border bool
+	Title  string
 }
 
 func MapPanel(content string, opts MapPanelOptions) string {
 	panel := Sized(opts.Width, opts.Height, content)
-	
+
 	if opts.Border {
 		if opts.Title != "" {
 			title := Header(" " + opts.Title + " ")
@@ -90,7 +90,7 @@ func MapPanel(content string, opts MapPanelOptions) string {
 			panel = Bordered(panel)
 		}
 	}
-	
+
 	return panel
 }
 
@@ -113,7 +113,7 @@ func LogPanel(messages []LogMessage, width int) string {
 	if len(messages) == 0 {
 		return Sized(width, 0, Muted("No messages"))
 	}
-	
+
 	var styledMessages []string
 	for _, msg := range messages {
 		var styled string
@@ -131,7 +131,7 @@ func LogPanel(messages []LogMessage, width int) string {
 		}
 		styledMessages = append(styledMessages, styled)
 	}
-	
+
 	content := strings.Join(styledMessages, "\n")
 	return Sized(width, 0, content)
 }
@@ -153,9 +153,9 @@ func PlayerStatsComponent(stats PlayerStatsData) string {
 
 // LocationComponent for current location display
 type LocationData struct {
-	Layer    string
-	Planet   int
-	Depth    int
+	Layer  string
+	Planet int
+	Depth  int
 }
 
 func LocationComponent(location LocationData) string {
@@ -178,16 +178,16 @@ func GameInfoComponent(info GameInfoData) string {
 // Enhanced StatusBar using components and advanced styling
 func EnhancedStatusBar(w int, location LocationData, stats PlayerStatsData, info GameInfoData) string {
 	builder := NewComponentBuilder()
-	
+
 	left := builder.
 		Add(LocationComponent(location)).
 		Add(Muted("  |  ")).
 		Add(GameInfoComponent(info)).
 		Layout(lipgloss.Center).
 		Build()
-	
+
 	right := PlayerStatsComponent(stats)
-	
+
 	// Use StyleBuilder for the final layout
 	return NewStyleBuilder().
 		Width(w).
@@ -205,20 +205,20 @@ func EnhancedStatusBar(w int, location LocationData, stats PlayerStatsData, info
 
 // DynamicQuestPanel with state-aware styling
 func DynamicQuestPanel(data QuestPanelData, state GameState) string {
-	return DynamicPanel("QUEST", 
-		"Status: "+data.Status, 
-		state, 
+	return DynamicPanel("QUEST",
+		"Status: "+data.Status,
+		state,
 		PanelOptions{Border: true})
 }
 
 // AnimatedStatusComponent with optional effects
 type AnimatedStatusData struct {
-	Label     string
-	Value     string
-	Status    StatStatus
-	Trend     TrendDirection
-	Animated  bool
-	Frame     int
+	Label    string
+	Value    string
+	Status   StatStatus
+	Trend    TrendDirection
+	Animated bool
+	Frame    int
 }
 
 func AnimatedStatusComponent(data AnimatedStatusData) string {
@@ -232,7 +232,7 @@ func AnimatedStatusComponent(data AnimatedStatusData) string {
 // AdvancedPlayerStatsComponent with trends and animations
 func AdvancedPlayerStatsComponent(stats PlayerStatsData, prevStats PlayerStatsData, frame int) string {
 	builder := NewComponentBuilder()
-	
+
 	// Fuel with trend
 	fuelTrend := TrendFlat
 	if stats.Fuel > prevStats.Fuel {
@@ -240,7 +240,7 @@ func AdvancedPlayerStatsComponent(stats PlayerStatsData, prevStats PlayerStatsDa
 	} else if stats.Fuel < prevStats.Fuel {
 		fuelTrend = TrendDown
 	}
-	
+
 	fuelData := AnimatedStatusData{
 		Label:    "Fuel ",
 		Value:    itoa(stats.Fuel),
@@ -249,7 +249,7 @@ func AdvancedPlayerStatsComponent(stats PlayerStatsData, prevStats PlayerStatsDa
 		Animated: stats.Fuel < 20, // Animate when critical
 		Frame:    frame,
 	}
-	
+
 	// Hull with trend
 	hullTrend := TrendFlat
 	if stats.Hull > prevStats.Hull {
@@ -257,7 +257,7 @@ func AdvancedPlayerStatsComponent(stats PlayerStatsData, prevStats PlayerStatsDa
 	} else if stats.Hull < prevStats.Hull {
 		hullTrend = TrendDown
 	}
-	
+
 	hullData := AnimatedStatusData{
 		Label:    "Hull ",
 		Value:    itoa(stats.Hull),
@@ -266,7 +266,7 @@ func AdvancedPlayerStatsComponent(stats PlayerStatsData, prevStats PlayerStatsDa
 		Animated: stats.Hull < 20, // Animate when critical
 		Frame:    frame,
 	}
-	
+
 	return builder.
 		Add(AnimatedStatusComponent(fuelData)).
 		Add(Muted("  ")).
@@ -280,13 +280,13 @@ func AdvancedPlayerStatsComponent(stats PlayerStatsData, prevStats PlayerStatsDa
 // ThemedPanel applies theme-aware styling based on game layer
 func ThemedPanel(title, content string, layer ecs.GameLayer, width, height int) string {
 	themeColor := GetStateColor(layer)
-	
+
 	panel := NewComponentBuilder().
 		Header(title).
 		Content(content, nil).
 		Layout(lipgloss.Top).
 		Build()
-	
+
 	return NewStyleBuilder().
 		Width(width).
 		Height(height).
@@ -301,14 +301,14 @@ func ThemedPanel(title, content string, layer ecs.GameLayer, width, height int) 
 func ResponsiveControlsPanel(groups []ControlsGroup, availableWidth int) string {
 	builder := NewComponentBuilder()
 	builder.Header("╭─ CONTROLS ─╮")
-	
+
 	for i, group := range groups {
 		if i > 0 {
 			builder.Add("")
 		}
-		
+
 		builder.Content(group.Title+":", Muted)
-		
+
 		if availableWidth < 25 {
 			// Compact mode - show only essential controls
 			for _, item := range group.Items {
@@ -323,7 +323,7 @@ func ResponsiveControlsPanel(groups []ControlsGroup, availableWidth int) string 
 			}
 		}
 	}
-	
+
 	return builder.Layout(lipgloss.Top).Build()
 }
 

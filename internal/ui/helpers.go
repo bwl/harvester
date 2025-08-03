@@ -2,7 +2,7 @@ package ui
 
 import (
 	"strings"
-	
+
 	"github.com/charmbracelet/lipgloss"
 	"harvester/pkg/ecs"
 )
@@ -162,7 +162,7 @@ const (
 // ConditionalStyle applies styling based on game state
 func ConditionalStyle(state GameState, content string) string {
 	builder := NewStyleBuilder()
-	
+
 	switch state {
 	case StateDanger:
 		return builder.Theme(ThemeError).Bold(true).Render(content)
@@ -179,9 +179,9 @@ func ConditionalStyle(state GameState, content string) string {
 
 // AnimatedText provides text animation helpers
 type AnimationState struct {
-	Frame      int
-	MaxFrames  int
-	Direction  int // 1 for forward, -1 for backward
+	Frame     int
+	MaxFrames int
+	Direction int // 1 for forward, -1 for backward
 }
 
 // BlinkingText creates blinking effect
@@ -200,7 +200,7 @@ func FadingText(text string, intensity float64) string {
 	if intensity >= 1 {
 		return text
 	}
-	
+
 	// Simulate fading with different colors
 	builder := NewStyleBuilder()
 	if intensity > 0.7 {
@@ -277,7 +277,7 @@ func (cb *ComponentBuilder) Build() string {
 	if len(cb.components) == 0 {
 		return ""
 	}
-	
+
 	if cb.layout == lipgloss.Top || cb.layout == lipgloss.Bottom {
 		// Vertical layout
 		if cb.separator != "" {
@@ -324,20 +324,20 @@ func GetStateColor(state ecs.GameLayer) ThemeColor {
 // Dynamic panel styling based on content
 func DynamicPanel(title, content string, state GameState, options PanelOptions) string {
 	builder := NewComponentBuilder()
-	
+
 	// Add title with state-aware styling
 	if title != "" {
 		styledTitle := ConditionalStyle(state, title)
 		builder.Header(styledTitle)
 	}
-	
+
 	// Add content
 	if content != "" {
 		builder.Content(content, nil)
 	}
-	
+
 	panel := builder.Layout(lipgloss.Top).Build()
-	
+
 	// Apply panel styling
 	if options.Border {
 		return Bordered(panel)
@@ -345,7 +345,7 @@ func DynamicPanel(title, content string, state GameState, options PanelOptions) 
 	if options.Width > 0 || options.Height > 0 {
 		return Sized(options.Width, options.Height, panel)
 	}
-	
+
 	return panel
 }
 
@@ -370,13 +370,13 @@ func StatWithTrend(label, current string, trend TrendDirection, status StatStatu
 	default:
 		trendIcon = ""
 	}
-	
+
 	stat := Stat(label, current, status)
 	if trendIcon != "" {
 		trendStyle := NewStyleBuilder().Theme(getTrendColor(trend)).Build()
 		stat += " " + trendStyle.Render(trendIcon)
 	}
-	
+
 	return stat
 }
 
@@ -398,4 +398,3 @@ func getTrendColor(trend TrendDirection) ThemeColor {
 		return ThemeMuted
 	}
 }
-
