@@ -15,16 +15,16 @@ func (t *tvFrame) GetGlyphs() [][]rendering.Glyph {
 	pad := 3
 	// top and bottom borders
 	for y:=0; y<pad && y<t.h; y++{
-		for x:=0; x<t.w; x++{ g[y][x] = rendering.Glyph{Char:'█', Foreground:black, Background:black} }
+		for x:=0; x<t.w; x++{ g[y][x] = rendering.Glyph{Char:'█', Foreground:black, Background:black, Alpha:1.0} }
 	}
 	for y:=t.h-pad; y<t.h; y++{
 		if y<0 { continue }
-		for x:=0; x<t.w; x++{ g[y][x] = rendering.Glyph{Char:'█', Foreground:black, Background:black} }
+		for x:=0; x<t.w; x++{ g[y][x] = rendering.Glyph{Char:'█', Foreground:black, Background:black, Alpha:1.0} }
 	}
 	// left and right borders
 	for y:=pad; y<t.h-pad; y++{
-		for x:=0; x<pad && x<t.w; x++{ g[y][x] = rendering.Glyph{Char:'█', Foreground:black, Background:black} }
-		for x:=t.w-pad; x<t.w; x++{ if x>=0 { g[y][x] = rendering.Glyph{Char:'█', Foreground:black, Background:black} } }
+		for x:=0; x<pad && x<t.w; x++{ g[y][x] = rendering.Glyph{Char:'█', Foreground:black, Background:black, Alpha:1.0} }
+		for x:=t.w-pad; x<t.w; x++{ if x>=0 { g[y][x] = rendering.Glyph{Char:'█', Foreground:black, Background:black, Alpha:1.0} } }
 	}
 	return g
 }

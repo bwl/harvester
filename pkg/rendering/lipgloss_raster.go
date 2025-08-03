@@ -60,12 +60,12 @@ func RenderLipglossString(lines []string, defaultFG Color, defaultBG Color, defa
 				continue
 			}
 			ch := in[i]
-			row[x] = Glyph{Char: ch, Foreground: fg, Background: bg, Style: st}
+			row[x] = Glyph{Char: ch, Foreground: fg, Background: bg, Style: st, Alpha: 1.0}
 			i++
 			x++
 		}
 		// pad remainder
-		for ; x < maxW; x++ { row[x] = Glyph{Char: ' ', Foreground: fg, Background: bg, Style: st} }
+		for ; x < maxW; x++ { row[x] = Glyph{Char: ' ', Foreground: fg, Background: bg, Style: st, Alpha: 1.0} }
 		m[y] = row
 	}
 	return m

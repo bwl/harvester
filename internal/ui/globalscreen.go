@@ -197,6 +197,11 @@ func (g *GlobalScreen) View() string {
 
 // RegisterContent implements RenderableScreen interface
 func (g *GlobalScreen) RegisterContent(renderer *rendering.ViewRenderer) {
+	// Hidden until opening starts
+	if g.openingPending {
+		return
+	}
+
 	// Let sub-screen register its content first
 	if renderableScreen, ok := g.subScreen.(RenderableScreen); ok {
 		renderableScreen.RegisterContent(renderer)

@@ -18,7 +18,7 @@ func (b *backgroundLayer) GetGlyphs() [][]rendering.Glyph {
 		for x:=0;x<b.w;x++{
 			v := uint8( b.rng.Intn(32) ) // 0..31 dark grey
 			c := rendering.Color{R:v,G:v,B:v}
-			row[x] = rendering.Glyph{Char:'█', Foreground:c, Background:c}
+			row[x] = rendering.Glyph{Char:'█', Foreground:c, Background:c, Alpha:1.0}
 		}
 		g[y]=row
 	}
