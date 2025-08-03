@@ -1,6 +1,6 @@
 # CRUSH.md
 
-Repo: Go (1.23+), module "harvester". CLI TUI using charmbracelet/bubbletea + lipgloss. Game: "Harvest of Stars".
+Repo: Go (1.23+), module "harvester". Bubble Tea TUI + Lipgloss. Engine 20 FPS, UI 60 FPS. Autosave only; load at startup.
 
 Build/Run
 - Build: go build ./...

@@ -1,0 +1,87 @@
+# Layered Rendering Architecture Plan (MVP)
+
+## Problem Analysis
+Manual ANSI string splicing causes corruption. We need a glyph-based compositor with clean layering.
+
+## Proposed Architecture
+
+MVP targets Bubble Tea RPG needs with full WindowSize responsiveness, layers GAME + MENU only, Lip Gloss rasterization for borders/panels, alignment+offset positioning, no animations, full redraw per frame, and basic wide-rune support.
+
+### Master View Controller
+A pure `ViewRenderer` that composes layers into a terminal string. No external state mutations in Render(); Bubble Tea calls View() to get its output.
+
+### Layer System (MVP)
+1. GAME — terrain/map/entities
+2. MENU — dialogs/menus/forms
+(Defer UI/HUD and OVERLAY.)
+
+### Interfaces
+- RenderableContent: GetLayer, GetPosition, GetBounds, GetGlyphs
+- Position: Horizontal/Vertical alignment + OffsetX/OffsetY (percentages deferred)
+- Glyph: rune + fg/bg + style (bold/italic/etc.)
+- Bounds, Color, Style types
+
+## Bubble Tea Integration
+- Model.Update(): register/unregister content based on state
+- Model.View(): vr.Render()
+- tea.WindowSizeMsg: vr.SetDimensions(w,h); minimum recommended 80x24; clip/crop or center on smaller
+
+## Lip Gloss Integration (MVP)
+- Use lipgloss for borders/panels/basic styling only
+- Add rasterizer: LipGlossString → [][]Glyph to avoid ANSI corruption
+
+## Positioning (MVP)
+- Alignment + offsets only (Left/Center/Right; Top/Center/Bottom)
+
+## Implementation Plan
+
+### Phase 1: Core
+- pkg/rendering/interfaces.go
+  - Layer (Game, Menu; defer UI, Overlay)
+  - Position (alignment+offset only)
+  - Bounds, Glyph, Color, Style
+  - RenderableContent
+- pkg/rendering/glyph_matrix.go
+  - GlyphMatrix, NewGlyphMatrix, Clear, Set/Get, InBounds
+  - ToTerminalString (handles wide runes; combining deferred)
+- pkg/rendering/position.go
+  - CalculatePosition for alignment+offset; bounds clipping
+- pkg/rendering/view_renderer.go
+  - width/height, layers map, glyph matrix
+  - Register/Unregister, SetDimensions, Render (pure), composite
+- pkg/rendering/lipgloss_raster.go
+  - Convert lipgloss-rendered blocks to [][]Glyph
+
+### Phase 2: StartScreen Migration
+- internal/ui/screens/terrain_content.go (LayerGame): wrap map render → glyphs
+- internal/ui/screens/menu_content.go (LayerMenu): menu via lipgloss → raster → glyphs
+- startscreen: hold ViewRenderer; Update() manages registrations; View() uses vr.Render(); handle WindowSizeMsg
+- Tests: terrain shows; menu centers; resize works; golden snapshots
+
+### Phase 3: Post-MVP Enhancements
+- Add UI/HUD layer via lipgloss rasterizer
+- Simple animations (blink/fade) once static composition is stable
+- Clipping/viewport and Z ordering within layers as needed
+
+### Phase 4: Optimization (MVP+1)
+- Dirty region tracking; partial redraws
+- Glyph matrix pooling; faster glyph->string conversion
+- Benchmarks
+
+### Testing
+- Unit tests: position calc, glyph matrix, renderer
+- Golden snapshot tests for View() output (include wide-rune cases)
+
+## File Structure
+pkg/rendering/
+- interfaces.go
+- colors.go
+- glyph_matrix.go
+- position.go
+- view_renderer.go
+- lipgloss_raster.go
+
+internal/ui/screens/
+- terrain_content.go
+- menu_content.go
+# ui_content.go, animation_content.go deferred
