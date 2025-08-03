@@ -8,20 +8,11 @@ import (
 
 type Spaceship struct{}
 
-type FuelTank struct{ Current int }
-
-type Velocity struct{ X, Y float64 }
-
 func ApplyDirectionalVelocity(w *ecs.World, e ecs.Entity, dx, dy float64) {
-	v, _ := ecs.Get[Velocity](w, e)
-	v.X = dx
-	v.Y = dy
+	v, _ := ecs.Get[components.Velocity](w, e)
+	v.VX = dx
+	v.VY = dy
 	ecs.Add(w, e, v)
-}
-
-type Planet struct {
-	ID   int
-	Name string
 }
 
 type SpaceObjects struct{}
@@ -29,12 +20,8 @@ type SpaceObjects struct{}
 type FuelSystem struct{}
 
 func (s FuelSystem) Update(dt float64, w *ecs.World) {
-	ctx := ecs.GetWorldContext(w)
-	if ctx.CurrentLayer != ecs.LayerSpace {
-		return
-	}
-	ecs.View2Of[FuelTank, Velocity](w).Each(func(t ecs.Tuple2[FuelTank, Velocity]) {
-		burn := int((abs(t.B.X)+abs(t.B.Y))*dt) + 1
+	ecs.View2Of[components.FuelTank, components.Velocity](w).Each(func(t ecs.Tuple2[components.FuelTank, components.Velocity]) {
+		burn := int((abs(t.B.VX)+abs(t.B.VY))*dt) + 1
 		if t.A.Current > 0 {
 			t.A.Current -= burn
 			if t.A.Current < 0 {
@@ -48,13 +35,9 @@ func (s FuelSystem) Update(dt float64, w *ecs.World) {
 type SpaceMovement struct{}
 
 func (s SpaceMovement) Update(dt float64, w *ecs.World) {
-	ctx := ecs.GetWorldContext(w)
-	if ctx.CurrentLayer != ecs.LayerSpace {
-		return
-	}
-	ecs.View2Of[components.Position, Velocity](w).Each(func(t ecs.Tuple2[components.Position, Velocity]) {
-		t.A.X += t.B.X * dt
-		t.A.Y += t.B.Y * dt
+	ecs.View2Of[components.Position, components.Velocity](w).Each(func(t ecs.Tuple2[components.Position, components.Velocity]) {
+		t.A.X += t.B.VX * dt
+		t.A.Y += t.B.VY * dt
 		ecs.Add(w, t.E, *t.A)
 	})
 }
@@ -63,9 +46,6 @@ type PlanetApproachSystem struct{}
 
 func (s PlanetApproachSystem) Update(dt float64, w *ecs.World) {
 	ctx := ecs.GetWorldContext(w)
-	if ctx.CurrentLayer != ecs.LayerSpace {
-		return
-	}
 	_ = dt
 	// Enter planet when player presses '>' over a planet glyph '1','2','3'
 	pressed := false
@@ -74,10 +54,8 @@ func (s PlanetApproachSystem) Update(dt float64, w *ecs.World) {
 		return
 	}
 	playerPos := components.Position{}
-	ecs.View2Of[components.Position, components.Renderable](w).Each(func(t ecs.Tuple2[components.Position, components.Renderable]) {
-		if t.B.Glyph == '@' {
-			playerPos = *t.A
-		}
+	ecs.View2Of[components.Player, components.Position](w).Each(func(t ecs.Tuple2[components.Player, components.Position]) {
+		playerPos = *t.B
 	})
 	enterID := -1
 	ecs.View2Of[components.Position, components.Renderable](w).Each(func(t ecs.Tuple2[components.Position, components.Renderable]) {

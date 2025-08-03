@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"harvester/pkg/components"
 	"harvester/pkg/ecs"
+	"harvester/pkg/engine"
 	"harvester/pkg/systems"
 )
 
@@ -32,30 +34,16 @@ type Model struct {
 	player ecs.Entity
 }
 
+func (m *Model) World() *ecs.World { return m.world }
+
 func NewModel(gs any) Model { return NewModelWithRNG(rand.New(rand.NewSource(1))) }
 
 func NewModelWithRNG(r *rand.Rand) Model {
-	w := ecs.NewWorld(r)
-	render := &systems.Render{}
-	mapRender = &systems.MapRender{}
-	camera := &systems.CameraSystem{}
-	reg := ecs.SystemRegistry{
-		UniversalSystems: []ecs.System{systems.InputSystem{}, systems.Tick{}, camera, systems.LevelManager{}, mapRender, render},
-		SpaceSystems:     []ecs.System{systems.SpaceMovement{}, systems.FuelSystem{}, systems.PlanetApproachSystem{}, systems.PlanetSelection{}},
-		SurfaceSystems:   []ecs.System{systems.SurfaceHeartbeat{}, systems.TerrainGen{}, systems.SurfaceMovement{}, systems.DepthProgression{}, systems.WeatherTick{}, systems.RiverFlow{}, systems.TradeRoutePatrols{}, systems.WildlifeSpawn{}, systems.KingdomGuards{}, systems.QuestSystem{}},
-	}
-	s := ecs.NewSchedulerWithContext(reg)
-	m := Model{rng: r, world: w, scheduler: s, render: render}
-	m.player = w.Create()
-	ecs.Add(w, m.player, components.Position{})
-	ecs.Add(w, m.player, components.Camera{Width: 200 - 30, Height: 80 - 5})
-	ecs.Add(w, m.player, components.Renderable{Glyph: '@', TileType: components.TileStar})
-	ecs.SetWorldContext(w, ecs.WorldContext{CurrentLayer: ecs.LayerSpace})
-	ecs.Add(w, m.player, components.Input{})
-	ecs.Add(w, m.player, components.Velocity{})
-	ecs.Add(w, m.player, systems.FuelTank{Current: 100})
-	ecs.Add(w, m.player, systems.Velocity{})
-	ecs.Add(w, 1, components.WorldInfo{Width: 200, Height: 80})
+	bs := engine.New(r)
+	w := bs.World
+	m := Model{rng: r, world: w, scheduler: bs.Scheduler, render: bs.Render}
+	mapRender = bs.MapRender
+	m.player = bs.Player
 	for y := 0; y < 80; y++ {
 		for x := 0; x < 200; x++ {
 			if (x+y)%11 == 0 {
@@ -70,7 +58,9 @@ func NewModelWithRNG(r *rand.Rand) Model {
 	return m
 }
 
-func (m *Model) Init() tea.Cmd { return nil }
+func (m *Model) Init() tea.Cmd {
+	return tea.Tick(time.Second/60, func(t time.Time) tea.Msg { return t })
+}
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -96,31 +86,35 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			systems.SetPlayerInput(m.world, m.player, "enter")
 		case "ctrl+s":
 			m.save()
-		case "ctrl+o":
-			m.load()
 		case "ctrl+shift+s":
 			m.saveCompressed()
-		case "ctrl+shift+o":
-			m.loadCompressed()
 		case "1":
 			m.saveSlot(1)
 		case "2":
 			m.saveSlot(2)
 		case "3":
 			m.saveSlot(3)
-		case "shift+1":
-			m.loadSlot(1)
-		case "shift+2":
-			m.loadSlot(2)
-		case "shift+3":
-			m.loadSlot(3)
 		}
-	}
-	prev := ecs.GetWorldContext(m.world)
-	m.scheduler.Update(1.0, m.world)
-	next := ecs.GetWorldContext(m.world)
-	if prev.CurrentLayer != next.CurrentLayer {
-		m.log = append(m.log, "Layer: "+layerName(next.CurrentLayer))
+	case time.Time:
+		prev := ecs.GetWorldContext(m.world)
+		start := time.Now()
+		m.scheduler.Update(1.0/20.0, m.world)
+		wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
+		if int(wi.Tick)%100 == 0 {
+			m.saveCompressed()
+		}
+		dur := time.Since(start)
+		if os.Getenv("DEBUG_TICK") == "1" {
+			m.log = append(m.log, "engine dt:0.05 ui dt:0.0167 tick:"+dur.String())
+			if len(m.log) > 5 {
+				m.log = m.log[len(m.log)-5:]
+			}
+		}
+		next := ecs.GetWorldContext(m.world)
+		if prev.CurrentLayer != next.CurrentLayer {
+			m.log = append(m.log, "Layer: "+layerName(next.CurrentLayer))
+		}
+		return m, tea.Tick(time.Second/60, func(t time.Time) tea.Msg { return t })
 	}
 	return m, nil
 }
