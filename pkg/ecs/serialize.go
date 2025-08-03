@@ -17,6 +17,8 @@ type Snapshot struct {
 }
 
 func Save(w *World, enc func(v any) ([]byte, error)) (*Snapshot, error) {
+	w.saveMu.Lock()
+	defer w.saveMu.Unlock()
 	if enc == nil {
 		enc = json.Marshal
 	}
@@ -50,6 +52,8 @@ func Save(w *World, enc func(v any) ([]byte, error)) (*Snapshot, error) {
 }
 
 func Load(w *World, s *Snapshot, dec func(data []byte, v any) error) error {
+	w.saveMu.Lock()
+	defer w.saveMu.Unlock()
 	if dec == nil {
 		dec = json.Unmarshal
 	}

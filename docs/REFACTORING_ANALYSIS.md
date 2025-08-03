@@ -83,10 +83,10 @@ if ctx.CurrentLayer != ecs.LayerSpace { return }
 
 ### **7. Inconsistent Input Handling**
 **Problem**: Different input paradigms per layer:
-- Space: Input → Velocity → Position  
-- Surface: Input → Direct Position changes
+- Space: Input → Velocity → Position (momentum-based physics)
+- Surface: Input → Direct Position changes (grid-based movement)
 
-**Impact**: Inconsistent feel, harder to add features like momentum, physics.
+**Design**: These systems are intentionally separate - spaceship movement and surface movement use different maps and mechanics. Space uses fuel/oxygen/warp cores, surface uses food/hunger. Layer transitions show full-screen loading ("Arriving on planet Toft") and pause/resume appropriate systems.
 
 ### **8. Monolithic UI Model**
 **Problem**: UI model does too much:
@@ -173,11 +173,22 @@ ecs.Add(w, m.player, components.Player{})
 
 ## Long-term Architecture Goals
 
-1. **Unified Physics**: Single movement system for all layers
+1. **Separate Movement Systems**: Maintain distinct space (momentum/physics) and surface (grid-based) movement with different resource systems
 2. **Event-Driven Input**: Input events rather than direct component manipulation  
-3. **Layer Abstraction**: Systems register for layers, automatic activation
+3. **Layer Abstraction**: Systems register for layers, automatic activation with pause/resume on transitions
 4. **Component Purity**: All game state in components/, systems only contain logic
 5. **Entity Services**: Centralized player, camera, world management
 6. **Clean Separation**: UI ↔ Game Logic ↔ ECS boundaries
+7. **Performance Target**: Game engine at 20 FPS, Bubble Tea UI at 60 FPS for smooth orbital mechanics and beautiful space phenomena
 
-This refactoring will eliminate the movement bug and create a much more maintainable codebase for implementing the multi-planet vision.
+## Game Design Specifications
+
+- **Layer Separation**: Space and surface are completely different maps with distinct mechanics
+- **Resource Systems**: Space (fuel/oxygen/warp cores) vs Surface (food/hunger)
+- **Transitions**: Full-screen loading with system pause ("Arriving on planet Toft")
+- **Strict ECS**: Terminal is view layer only, all game logic in ECS
+- **Single-player**: No multiplayer beyond seed sharing
+- **Save System**: Quit-to-save with selectable save files
+- **Performance**: 20 FPS game engine enables real-time orbital mechanics
+
+This refactoring will eliminate the movement bug and create a maintainable codebase for the multi-planet roguelike vision.

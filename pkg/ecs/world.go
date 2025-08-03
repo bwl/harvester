@@ -13,6 +13,7 @@ type World struct {
 	stores map[reflect.Type]any
 	rng    *rand.Rand
 	seed   int64
+	saveMu sync.Mutex
 }
 
 func NewWorld(r *rand.Rand) *World {
