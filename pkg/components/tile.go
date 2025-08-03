@@ -1,3 +1,6 @@
 package components
 
-type Tile struct{ Glyph rune }
+type Tile struct {
+	Glyph rune
+	Type  TileType
+}
