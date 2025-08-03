@@ -6,6 +6,7 @@ toolchain go1.24.5
 
 require (
 	github.com/charmbracelet/bubbletea v1.3.6
+	github.com/charmbracelet/harmonica v0.2.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/stretchr/testify v1.9.0
 )
