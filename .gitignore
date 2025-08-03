@@ -6,5 +6,5 @@ vendor/
 *.out
 /.crush/
 .saves/
-game
+/game
 tmp_*.txt
