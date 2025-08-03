@@ -1,7 +1,7 @@
 # Project Handoff
 
 Overview
-- Language/stack: Go 1.23+, module "bubbleRouge". TUI game using Bubble Tea + Lip Gloss. ECS-based architecture.
+- Language/stack: Go 1.23+, module "harvester". TUI game "Harvest of Stars" using Bubble Tea + Lip Gloss. ECS-based architecture.
 - Entry points: cmd/game (interactive), cmd/sim (headless sim harness).
 - Core ECS: pkg/ecs (World, stores, queries, scheduler, save/load), pkg/components (component types), pkg/systems (systems for input, movement, camera, render, tick, harvest, combat).
 - UI: internal/ui/model.go wires systems, manages input, save/load.

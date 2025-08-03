@@ -2,7 +2,7 @@
 
 ## Core Game Vision
 
-bubbleRouge is a **multi-layered space exploration roguelike** that combines rocket ship navigation, planetary landing, and deep underground exploration. Players begin in space with a rocket ship and must strategically choose which planets to explore, knowing that once they land, they're committed to that world until they complete the necessary quests to re-enable space travel.
+Harvest of Stars is a **multi-layered space exploration roguelike** that combines rocket ship navigation, planetary landing, and deep underground exploration. Players begin in space with a rocket ship and must strategically choose which planets to explore, knowing that once they land, they're committed to that world until they complete the necessary quests to re-enable space travel.
 
 ## Game Loop Structure
 

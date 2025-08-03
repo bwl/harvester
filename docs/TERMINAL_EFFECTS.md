@@ -1,6 +1,6 @@
 # Terminal Game Effects Guide
 
-This document explores cool visual effects and game-like interfaces achievable with Bubble Tea and the Charm ecosystem for bubbleRouge.
+This document explores cool visual effects and game-like interfaces achievable with Bubble Tea and the Charm ecosystem for Harvest of Stars.
 
 ## Core Charm Ecosystem Libraries
 
@@ -27,7 +27,7 @@ This document explores cool visual effects and game-like interfaces achievable w
 - Framework-agnostic 2D/3D animation support
 - Natural motion for UI transitions
 
-## Visual Effects for bubbleRouge
+## Visual Effects for Harvest of Stars
 
 ### **Universe Expansion Animation**
 ```go
@@ -291,4 +291,4 @@ Run with: `vhs demo.tape`
 4. **Layer in particle effects** and advanced graphics
 5. **Record with VHS** for documentation and showcasing
 
-This creates a terminal experience that rivals graphical games while maintaining the charm and accessibility of text-based interfaces.
+This creates a terminal experience that rivals graphical games while maintaining the charm and accessibility of text-based interfaces for Harvest of Stars.
