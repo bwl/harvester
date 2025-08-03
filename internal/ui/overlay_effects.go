@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/charmbracelet/harmonica"
 	"harvester/pkg/components"
 	"harvester/pkg/rendering"
 )
@@ -41,9 +42,16 @@ func (c *CRTShutdownOverlay) GetBounds() rendering.Bounds {
 func (c *CRTShutdownOverlay) GetGlyphs() [][]rendering.Glyph {
 	glyphs := make([][]rendering.Glyph, c.height)
 	
-	// Calculate visible area (center portion that shrinks)
+	// Use harmonica spring for smooth CRT shutdown effect
+	// Spring parameters: fps=60, stiffness=8.0, damping=0.25 for realistic TV shutdown
+	spring := harmonica.NewSpring(harmonica.FPS(60), 8.0, 0.25)
+	pos := c.progress
+	vel := 0.0
+	easedProgress, _ := spring.Update(pos, vel, 1.0)
+	
+	// Calculate visible area (center portion that shrinks with spring easing)
 	totalHeight := c.height
-	visibleHeight := int(float64(totalHeight) * (1.0 - c.progress))
+	visibleHeight := int(float64(totalHeight) * (1.0 - easedProgress))
 	if visibleHeight < 1 {
 		visibleHeight = 1
 	}
@@ -117,9 +125,16 @@ func (c *CRTOpeningOverlay) GetBounds() rendering.Bounds {
 func (c *CRTOpeningOverlay) GetGlyphs() [][]rendering.Glyph {
 	glyphs := make([][]rendering.Glyph, c.height)
 	
-	// Calculate visible area (expands from center)
+	// Use harmonica spring for smooth CRT opening effect
+	// Different spring parameters: higher stiffness for snappier opening, lower damping for slight overshoot
+	spring := harmonica.NewSpring(harmonica.FPS(60), 12.0, 0.15)
+	pos := 1.0 - c.progress // Start from 1.0 and ease toward 0.0
+	vel := 0.0
+	maskedProgress, _ := spring.Update(pos, vel, 0.0)
+	
+	// Calculate visible area (expands from center with spring easing)
 	totalHeight := c.height
-	visibleHeight := int(float64(totalHeight) * c.progress)
+	visibleHeight := int(float64(totalHeight) * (1.0 - maskedProgress))
 	if visibleHeight < 0 {
 		visibleHeight = 0
 	}
