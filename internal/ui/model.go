@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"bubbleRouge/pkg/components"
-	"bubbleRouge/pkg/ecs"
-	"bubbleRouge/pkg/systems"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"harvester/pkg/components"
+	"harvester/pkg/ecs"
+	"harvester/pkg/systems"
 )
 
 func itoa(i int) string { return strconv.Itoa(i) }
@@ -25,9 +25,11 @@ type Model struct {
 	rng           *rand.Rand
 
 	world     *ecs.World
-	scheduler *ecs.Scheduler
-	render    *systems.Render
-	player    ecs.Entity
+	scheduler interface {
+		Update(dt float64, w *ecs.World)
+	}
+	render *systems.Render
+	player ecs.Entity
 }
 
 func NewModel(gs any) Model { return NewModelWithRNG(rand.New(rand.NewSource(1))) }
@@ -37,21 +39,30 @@ func NewModelWithRNG(r *rand.Rand) Model {
 	render := &systems.Render{}
 	mapRender = &systems.MapRender{}
 	camera := &systems.CameraSystem{}
-	s := ecs.NewScheduler(systems.InputSystem{}, systems.Movement{}, systems.Harvest{}, systems.Combat{}, systems.Tick{}, camera, mapRender, render)
+	reg := ecs.SystemRegistry{
+		UniversalSystems: []ecs.System{systems.InputSystem{}, systems.Tick{}, camera, systems.LevelManager{}, mapRender, render},
+		SpaceSystems:     []ecs.System{systems.SpaceMovement{}, systems.FuelSystem{}, systems.PlanetApproachSystem{}, systems.PlanetSelection{}},
+		SurfaceSystems:   []ecs.System{systems.SurfaceHeartbeat{}, systems.TerrainGen{}, systems.SurfaceMovement{}, systems.DepthProgression{}, systems.WeatherTick{}, systems.RiverFlow{}, systems.TradeRoutePatrols{}, systems.WildlifeSpawn{}, systems.KingdomGuards{}, systems.QuestSystem{}},
+	}
+	s := ecs.NewSchedulerWithContext(reg)
 	m := Model{rng: r, world: w, scheduler: s, render: render}
 	m.player = w.Create()
 	ecs.Add(w, m.player, components.Position{})
 	ecs.Add(w, m.player, components.Camera{Width: 200 - 30, Height: 80 - 5})
-	ecs.Add(w, m.player, components.Renderable{Glyph: '@'})
+	ecs.Add(w, m.player, components.Renderable{Glyph: '@', TileType: components.TileStar})
+	ecs.SetWorldContext(w, ecs.WorldContext{CurrentLayer: ecs.LayerSpace})
 	ecs.Add(w, m.player, components.Input{})
 	ecs.Add(w, m.player, components.Velocity{})
+	ecs.Add(w, m.player, systems.FuelTank{Current: 100})
+	ecs.Add(w, m.player, systems.Velocity{})
 	ecs.Add(w, 1, components.WorldInfo{Width: 200, Height: 80})
 	for y := 0; y < 80; y++ {
 		for x := 0; x < 200; x++ {
 			if (x+y)%11 == 0 {
 				e := w.Create()
 				ecs.Add(w, e, components.Position{X: float64(x), Y: float64(y)})
-				ecs.Add(w, e, components.Tile{Glyph: '*'})
+				ecs.Add(w, e, components.Tile{Glyph: '*', Type: components.TileStar})
+				ecs.Add(w, e, components.Renderable{Glyph: '*', TileType: components.TileStar, StyleMod: &components.ColorModifier{Special: components.EffectTwinkling}})
 			}
 		}
 	}
@@ -71,12 +82,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "h", "left":
 			systems.SetPlayerInput(m.world, m.player, "left")
+			systems.ApplyDirectionalVelocity(m.world, m.player, -1, 0)
 		case "l", "right":
 			systems.SetPlayerInput(m.world, m.player, "right")
+			systems.ApplyDirectionalVelocity(m.world, m.player, 1, 0)
 		case "k", "up":
 			systems.SetPlayerInput(m.world, m.player, "up")
+			systems.ApplyDirectionalVelocity(m.world, m.player, 0, -1)
 		case "j", "down":
 			systems.SetPlayerInput(m.world, m.player, "down")
+			systems.ApplyDirectionalVelocity(m.world, m.player, 0, 1)
+		case ">":
+			systems.SetPlayerInput(m.world, m.player, "enter")
 		case "ctrl+s":
 			m.save()
 		case "ctrl+o":
@@ -99,7 +116,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loadSlot(3)
 		}
 	}
+	prev := ecs.GetWorldContext(m.world)
 	m.scheduler.Update(1.0, m.world)
+	next := ecs.GetWorldContext(m.world)
+	if prev.CurrentLayer != next.CurrentLayer {
+		m.log = append(m.log, "Layer: "+layerName(next.CurrentLayer))
+	}
 	return m, nil
 }
 
@@ -194,7 +216,7 @@ func (m Model) View() string {
 			canvas[y][x] = '.'
 		}
 	}
-	// draw background tiles
+	// draw background tiles (with styles ignored in canvas)
 	for _, d := range mapRender.Output {
 		x := d.X - mx0
 		y := d.Y - my0
@@ -213,29 +235,48 @@ func (m Model) View() string {
 	var b strings.Builder
 	for y := 0; y < mapH; y++ {
 		for x := 0; x < mapW; x++ {
-			ch := string(canvas[y][x])
-			if ch == "." {
-				ch = spaceStyle(".")
-			} else if ch == "@" {
-				ch = playerStyle("@")
+			written := false
+			for _, d := range mapRender.Output {
+				if d.X-mx0 == x && d.Y-my0 == y {
+					b.WriteString(d.Style.Render(string(d.Glyph)))
+					written = true
+					break
+				}
 			}
-			b.WriteString(ch)
+			if !written {
+				ch := string(canvas[y][x])
+				if ch == "." {
+					ch = spaceStyle(".")
+				}
+				b.WriteString(ch)
+			}
 		}
 		b.WriteByte('\n')
 	}
 	wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
 	ps, _ := ecs.Get[components.PlayerStats](m.world, m.player)
-	status := lipgloss.NewStyle().Width(30).Render(
-		strings.Join([]string{
-			"tick:", itoa(int(wi.Tick)),
-			"world:", itoa(wi.Width) + "x" + itoa(wi.Height),
-			"fuel:", itoa(ps.Fuel), "hull:", itoa(ps.Hull), "drive:", itoa(ps.Drive),
-			"",
-			strings.Join(m.log, "\n"),
-		}, " \n"),
-	)
-	return lipgloss.JoinHorizontal(lipgloss.Top,
+	ctx := ecs.GetWorldContext(m.world)
+	top := lipgloss.NewStyle().Width(w).Render(strings.Join([]string{
+		"Layer " + layerName(ctx.CurrentLayer),
+		"Planet " + itoa(ctx.PlanetID),
+		"Depth " + itoa(ctx.Depth),
+		"Tick " + itoa(int(wi.Tick)),
+		"Fuel " + itoa(ps.Fuel) + "  Hull " + itoa(ps.Hull) + "  Drive " + itoa(ps.Drive),
+	}, "  |  "))
+	right := lipgloss.NewStyle().Width(30).Render(strings.Join([]string{
+		"Quest:", royalCharterStatus(ctx.QuestProgress),
+		"",
+		"Keys:", "h/j/k/l move", "> enter", "q quit",
+	}, "\n"))
+	main := lipgloss.JoinHorizontal(lipgloss.Top,
 		lipgloss.NewStyle().Width(mapW).Height(mapH).Render(b.String()),
-		status,
+		right,
 	)
+	log := lipgloss.NewStyle().Width(w).Render(strings.Join(m.log, "\n"))
+	frame := lipgloss.JoinVertical(lipgloss.Left,
+		top,
+		main,
+		log,
+	)
+	return frame
 }
