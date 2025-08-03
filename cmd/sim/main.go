@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"bubbleRouge/pkg/testharness"
+	"harvester/pkg/testharness"
 )
 
 type Step struct {

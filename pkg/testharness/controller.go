@@ -3,9 +3,9 @@ package testharness
 import (
 	"encoding/json"
 
-	"bubbleRouge/pkg/components"
-	"bubbleRouge/pkg/ecs"
-	"bubbleRouge/pkg/systems"
+	"harvester/pkg/components"
+	"harvester/pkg/ecs"
+	"harvester/pkg/systems"
 )
 
 type Controller struct {
@@ -53,7 +53,7 @@ func NewController(opt Options) *Controller {
 			if (x+y)%11 == 0 {
 				e := w.Create()
 				ecs.Add(w, e, components.Position{X: float64(x), Y: float64(y)})
-				ecs.Add(w, e, components.Tile{Glyph: '*'})
+				ecs.Add(w, e, components.Tile{Glyph: '*', Type: components.TileStar})
 			}
 		}
 	}

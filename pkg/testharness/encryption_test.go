@@ -3,9 +3,9 @@ package testharness
 import (
 	"testing"
 
-	"bubbleRouge/pkg/components"
-	"bubbleRouge/pkg/ecs"
 	"github.com/stretchr/testify/require"
+	"harvester/pkg/components"
+	"harvester/pkg/ecs"
 )
 
 func TestEncodeDecode_WithPassword(t *testing.T) {

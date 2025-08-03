@@ -1,14 +1,9 @@
 package systems
 
 import (
-	"bubbleRouge/pkg/components"
-	"bubbleRouge/pkg/ecs"
+	"harvester/pkg/components"
+	"harvester/pkg/ecs"
 )
-
-type Drawable struct {
-	X, Y  int
-	Glyph rune
-}
 
 type Render struct{ Output []Drawable }
 

@@ -5,8 +5,8 @@ package testharness
 import (
 	"testing"
 
-	"bubbleRouge/pkg/components"
-	"bubbleRouge/pkg/ecs"
+	"harvester/pkg/components"
+	"harvester/pkg/ecs"
 )
 
 func FuzzSaveLoadEquivalence(f *testing.F) {

@@ -4,9 +4,9 @@ import (
 	"sync"
 	"testing"
 
-	"bubbleRouge/pkg/components"
-	"bubbleRouge/pkg/ecs"
 	"github.com/stretchr/testify/require"
+	"harvester/pkg/components"
+	"harvester/pkg/ecs"
 )
 
 func TestConcurrentSaveLoad(t *testing.T) {

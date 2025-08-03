@@ -1,8 +1,8 @@
 package systems
 
 import (
-	"bubbleRouge/pkg/components"
-	"bubbleRouge/pkg/ecs"
+	"harvester/pkg/components"
+	"harvester/pkg/ecs"
 )
 
 type Harvest struct{}

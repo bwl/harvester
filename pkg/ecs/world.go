@@ -22,6 +22,8 @@ func NewWorld(r *rand.Rand) *World {
 	return &World{stores: make(map[reflect.Type]any), rng: r, seed: 1}
 }
 
+func RandFromSeed(seed int64) *rand.Rand { return rand.New(rand.NewSource(seed)) }
+
 func (w *World) Create() Entity {
 	w.mu.Lock()
 	defer w.mu.Unlock()

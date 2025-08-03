@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"bubbleRouge/pkg/components"
-	"bubbleRouge/pkg/ecs"
 	"github.com/stretchr/testify/require"
+	"harvester/pkg/components"
+	"harvester/pkg/ecs"
 )
 
 func roundtrip(t *testing.T, w *ecs.World) *ecs.World {
@@ -72,8 +72,8 @@ func TestSaveLoad_Inventory(t *testing.T) {
 func TestSaveLoad_Tile_Renderable_Health_Resource(t *testing.T) {
 	w := ecs.NewWorld(nil)
 	e := w.Create()
-	ecs.Add(w, e, components.Tile{Glyph: '*'})
-	ecs.Add(w, e, components.Renderable{Glyph: '@'})
+	ecs.Add(w, e, components.Tile{Glyph: '*', Type: components.TileStar})
+	ecs.Add(w, e, components.Renderable{Glyph: '@', TileType: components.TileStar})
 	ecs.Add(w, e, components.Health{HP: 5, Max: 10})
 	ecs.Add(w, e, components.Resource{Kind: "ore", Amount: 9})
 	w2 := roundtrip(t, w)

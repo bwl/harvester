@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"reflect"
 
-	"bubbleRouge/pkg/components"
+	"harvester/pkg/components"
 )
 
 type Snapshot struct {
@@ -44,6 +44,8 @@ func Save(w *World, enc func(v any) ([]byte, error)) (*Snapshot, error) {
 	s.Components[typeName[components.Tile]()] = dumpStore(enc, storeOf[components.Tile](w))
 	s.Components[typeName[components.Renderable]()] = dumpStore(enc, storeOf[components.Renderable](w))
 	s.Components[typeName[components.Health]()] = dumpStore(enc, storeOf[components.Health](w))
+	// persist WorldContext and surface-related systems' ad hoc components
+	s.Components[typeName[WorldContext]()] = dumpStore(enc, storeOf[WorldContext](w))
 	return s, nil
 }
 
@@ -78,6 +80,7 @@ func Load(w *World, s *Snapshot, dec func(data []byte, v any) error) error {
 	loadStore(dec, storeOf[components.Tile](w), s.Components[typeName[components.Tile]()])
 	loadStore(dec, storeOf[components.Renderable](w), s.Components[typeName[components.Renderable]()])
 	loadStore(dec, storeOf[components.Health](w), s.Components[typeName[components.Health]()])
+	loadStore(dec, storeOf[WorldContext](w), s.Components[typeName[WorldContext]()])
 	return nil
 }
 

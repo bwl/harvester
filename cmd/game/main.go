@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"bubbleRouge/internal/ui"
 	tea "github.com/charmbracelet/bubbletea"
+	"harvester/internal/ui"
 )
 
 func main() {
