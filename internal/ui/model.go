@@ -125,6 +125,91 @@ var (
 	playerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("45")).Render
 )
 
+const (
+	rightPanelWidth   = 30
+	bottomPanelHeight = 5
+	minMapW           = 10
+	minMapH           = 10
+)
+
+func (m *Model) renderStatusBar(w int) string {
+	wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
+	ps, _ := ecs.Get[components.PlayerStats](m.world, m.player)
+	ctx := ecs.GetWorldContext(m.world)
+	return lipgloss.NewStyle().Width(w).Render(strings.Join([]string{
+		"Layer " + layerName(ctx.CurrentLayer),
+		"Planet " + itoa(ctx.PlanetID),
+		"Depth " + itoa(ctx.Depth),
+		"Tick " + itoa(int(wi.Tick)),
+		"Fuel " + itoa(ps.Fuel) + "  Hull " + itoa(ps.Hull) + "  Drive " + itoa(ps.Drive),
+	}, "  |  "))
+}
+
+func (m *Model) renderMap(mapW, mapH int) string {
+	m.scheduler.Update(0, m.world)
+	cam, _ := ecs.Get[components.Camera](m.world, m.player)
+	mx0, my0 := cam.X, cam.Y
+	canvas := make([][]rune, mapH)
+	for i := range canvas {
+		canvas[i] = make([]rune, mapW)
+	}
+	for y := 0; y < mapH; y++ {
+		for x := 0; x < mapW; x++ {
+			canvas[y][x] = '.'
+		}
+	}
+	for _, d := range mapRender.Output {
+		x := d.X - mx0
+		y := d.Y - my0
+		if x >= 0 && y >= 0 && x < mapW && y < mapH {
+			canvas[y][x] = d.Glyph
+		}
+	}
+	for _, d := range m.render.Output {
+		x := d.X - mx0
+		y := d.Y - my0
+		if x >= 0 && y >= 0 && x < mapW && y < mapH {
+			canvas[y][x] = d.Glyph
+		}
+	}
+	var b strings.Builder
+	styled := make(map[[2]int]string, len(mapRender.Output))
+	for _, d := range mapRender.Output {
+		x := d.X - mx0
+		y := d.Y - my0
+		if x >= 0 && y >= 0 && x < mapW && y < mapH {
+			styled[[2]int{x, y}] = d.Style.Render(string(d.Glyph))
+		}
+	}
+	for y := 0; y < mapH; y++ {
+		for x := 0; x < mapW; x++ {
+			if s, ok := styled[[2]int{x, y}]; ok {
+				b.WriteString(s)
+				continue
+			}
+			ch := string(canvas[y][x])
+			if ch == "." {
+				ch = spaceStyle(".")
+			}
+			b.WriteString(ch)
+		}
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func (m *Model) renderUI(w, h int, mapStr, rightStr, statusStr, logStr string) string {
+	main := lipgloss.JoinHorizontal(lipgloss.Top,
+		lipgloss.NewStyle().Width(w-rightPanelWidth).Height(h-bottomPanelHeight).Render(mapStr),
+		lipgloss.NewStyle().Width(rightPanelWidth).Render(rightStr),
+	)
+	return lipgloss.JoinVertical(lipgloss.Left,
+		statusStr,
+		main,
+		lipgloss.NewStyle().Width(w).Render(logStr),
+	)
+}
+
 func (m *Model) save() {
 	ss, _ := ecs.Save(m.world, nil)
 	b, _ := json.Marshal(ss)
@@ -189,88 +274,20 @@ func (m Model) View() string {
 	if h == 0 {
 		h = 40
 	}
-	// reserve panels
-	mapW, mapH := w-30, h-5
-	m.scheduler.Update(0, m.world)
-	if mapW < 10 {
-		mapW = 10
+	mapW, mapH := w-rightPanelWidth, h-bottomPanelHeight
+	if mapW < minMapW {
+		mapW = minMapW
 	}
-	if mapH < 10 {
-		mapH = 10
+	if mapH < minMapH {
+		mapH = minMapH
 	}
-	cam, _ := ecs.Get[components.Camera](m.world, m.player)
-	mx0 := cam.X
-	my0 := cam.Y
-	canvas := make([][]rune, mapH)
-	for i := range canvas {
-		canvas[i] = make([]rune, mapW)
-	}
-	for y := 0; y < mapH; y++ {
-		for x := 0; x < mapW; x++ {
-			canvas[y][x] = '.'
-		}
-	}
-	// draw background tiles (with styles ignored in canvas)
-	for _, d := range mapRender.Output {
-		x := d.X - mx0
-		y := d.Y - my0
-		if x >= 0 && y >= 0 && x < mapW && y < mapH {
-			canvas[y][x] = d.Glyph
-		}
-	}
-	// draw entities
-	for _, d := range m.render.Output {
-		x := d.X - mx0
-		y := d.Y - my0
-		if x >= 0 && y >= 0 && x < mapW && y < mapH {
-			canvas[y][x] = d.Glyph
-		}
-	}
-	var b strings.Builder
-	for y := 0; y < mapH; y++ {
-		for x := 0; x < mapW; x++ {
-			written := false
-			for _, d := range mapRender.Output {
-				if d.X-mx0 == x && d.Y-my0 == y {
-					b.WriteString(d.Style.Render(string(d.Glyph)))
-					written = true
-					break
-				}
-			}
-			if !written {
-				ch := string(canvas[y][x])
-				if ch == "." {
-					ch = spaceStyle(".")
-				}
-				b.WriteString(ch)
-			}
-		}
-		b.WriteByte('\n')
-	}
-	wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
-	ps, _ := ecs.Get[components.PlayerStats](m.world, m.player)
-	ctx := ecs.GetWorldContext(m.world)
-	top := lipgloss.NewStyle().Width(w).Render(strings.Join([]string{
-		"Layer " + layerName(ctx.CurrentLayer),
-		"Planet " + itoa(ctx.PlanetID),
-		"Depth " + itoa(ctx.Depth),
-		"Tick " + itoa(int(wi.Tick)),
-		"Fuel " + itoa(ps.Fuel) + "  Hull " + itoa(ps.Hull) + "  Drive " + itoa(ps.Drive),
-	}, "  |  "))
-	right := lipgloss.NewStyle().Width(30).Render(strings.Join([]string{
-		"Quest:", royalCharterStatus(ctx.QuestProgress),
+	mapStr := m.renderMap(mapW, mapH)
+	right := strings.Join([]string{
+		"Quest:", royalCharterStatus(ecs.GetWorldContext(m.world).QuestProgress),
 		"",
 		"Keys:", "h/j/k/l move", "> enter", "q quit",
-	}, "\n"))
-	main := lipgloss.JoinHorizontal(lipgloss.Top,
-		lipgloss.NewStyle().Width(mapW).Height(mapH).Render(b.String()),
-		right,
-	)
-	log := lipgloss.NewStyle().Width(w).Render(strings.Join(m.log, "\n"))
-	frame := lipgloss.JoinVertical(lipgloss.Left,
-		top,
-		main,
-		log,
-	)
-	return frame
+	}, "\n")
+	status := m.renderStatusBar(w)
+	log := strings.Join(m.log, "\n")
+	return m.renderUI(w, h, mapStr, right, status, log)
 }
