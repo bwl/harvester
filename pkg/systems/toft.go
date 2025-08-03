@@ -3,6 +3,7 @@ package systems
 import (
 	"harvester/pkg/components"
 	"harvester/pkg/ecs"
+	"harvester/pkg/timing"
 	"math/rand"
 )
 
@@ -25,18 +26,12 @@ type TradeRoutePatrols struct{}
 
 type Patrol struct{}
 
-type QuestSystem struct{}
-
 type RiverFlow struct{}
 
 type KingdomGuards struct{}
 
 func (s WeatherTick) Update(dt float64, w *ecs.World) {
-	wi, ok := ecs.Get[components.WorldInfo](w, 1)
-	if !ok {
-		return
-	}
-	r := rand.New(rand.NewSource(int64(wi.Tick) + 1))
+	r := rand.New(rand.NewSource(int64(timing.Tick()) + 1))
 	we, _ := ecs.Get[components.Weather](w, 1)
 	if r.Float64() < 0.1 {
 		we.Rain = !we.Rain
@@ -53,7 +48,7 @@ func (s TradeRoutePatrols) Update(dt float64, w *ecs.World) {
 	if !ok {
 		return
 	}
-	if wi.Tick%50 == 0 {
+	if timing.Tick()%50 == 0 {
 		count := 0
 		ecs.View2Of[components.Position, Patrol](w).Each(func(t ecs.Tuple2[components.Position, Patrol]) { count++ })
 		if count < 5 {
@@ -90,7 +85,7 @@ func (s WildlifeSpawn) Update(dt float64, w *ecs.World) {
 		return
 	}
 	ctx := ecs.GetWorldContext(w)
-	r := rand.New(rand.NewSource(int64(wi.Tick) + int64(ctx.Depth)*37))
+	r := rand.New(rand.NewSource(int64(timing.Tick()) + int64(ctx.Depth)*37))
 	if r.Float64() < 0.1 {
 		e := w.Create()
 		x := r.Intn(wi.Width)
@@ -98,24 +93,6 @@ func (s WildlifeSpawn) Update(dt float64, w *ecs.World) {
 		ecs.Add(w, e, components.Position{X: float64(x), Y: float64(y)})
 		ecs.Add(w, e, components.Renderable{Glyph: 'w', TileType: components.TileForest})
 		ecs.Add(w, e, Wildlife{Hostile: ctx.Depth > 20})
-	}
-}
-
-func (q QuestSystem) Update(dt float64, w *ecs.World) {
-	ctx := ecs.GetWorldContext(w)
-	if ctx.QuestProgress.ContractsNeeded == 0 {
-		ctx.QuestProgress.ContractsNeeded = 5
-	}
-	wi, ok := ecs.Get[components.WorldInfo](w, 1)
-	if !ok {
-		return
-	}
-	if wi.Tick%100 == 0 && ctx.QuestProgress.ContractsCollected < ctx.QuestProgress.ContractsNeeded {
-		ctx.QuestProgress.ContractsCollected++
-		if ctx.QuestProgress.ContractsCollected >= ctx.QuestProgress.ContractsNeeded {
-			ctx.QuestProgress.RoyalCharterComplete = true
-		}
-		ecs.SetWorldContext(w, ctx)
 	}
 }
 

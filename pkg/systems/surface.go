@@ -18,7 +18,7 @@ func (s SurfaceHeartbeat) Update(dt float64, w *ecs.World) {
 	if !ok {
 		return
 	}
-	wi.Tick++
+	// Note: Tick is now handled by global timing system
 	ecs.Add(w, 1, wi)
 }
 
@@ -46,6 +46,38 @@ func (t TerrainGen) Update(dt float64, w *ecs.World) {
 		ecs.Add(w, e, components.Position{X: float64(x0), Y: float64(y)})
 		ecs.Add(w, e, components.Tile{Glyph: '~', Type: components.TileRiver})
 		ecs.Add(w, e, components.RiverTag{})
+		
+		// Make river slightly transparent to show terrain underneath
+		ecs.Add(w, e, components.Transparency{
+			Alpha:     0.8, // 80% opacity - slightly see-through
+			BlendMode: components.BlendNormal,
+		})
+	}
+	
+	// Add some fog patches for atmosphere
+	fogCount := int(r.Int63() % 5) // 0-4 fog patches
+	for i := 0; i < fogCount; i++ {
+		fx := int(r.Int63() % int64(wi.Width))
+		fy := int(r.Int63() % int64(wi.Height))
+		
+		// Create a small fog patch (3x3 area)
+		for dy := -1; dy <= 1; dy++ {
+			for dx := -1; dx <= 1; dx++ {
+				x, y := fx+dx, fy+dy
+				if x >= 0 && x < wi.Width && y >= 0 && y < wi.Height {
+					// Random chance for each fog cell
+					if r.Float64() < 0.6 {
+						e := w.Create()
+						ecs.Add(w, e, components.Position{X: float64(x), Y: float64(y)})
+						ecs.Add(w, e, components.Tile{Glyph: '░', Type: components.TileForest})
+						ecs.Add(w, e, components.Transparency{
+							Alpha:     0.2 + r.Float64()*0.3, // 20-50% opacity
+							BlendMode: components.BlendNormal,
+						})
+					}
+				}
+			}
+		}
 	}
 }
 
