@@ -1,6 +1,6 @@
 # CRUSH.md
 
-Repo: Go (1.23+), module "bubbleRouge". CLI TUI using charmbracelet/bubbletea + lipgloss. No tests yet.
+Repo: Go (1.23+), module "harvester". CLI TUI using charmbracelet/bubbletea + lipgloss. Game: "Harvest of Stars".
 
 Build/Run
 - Build: go build ./...

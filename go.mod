@@ -1,4 +1,4 @@
-module bubbleRouge
+module harvester
 
 go 1.23.0
 
