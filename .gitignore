@@ -8,3 +8,4 @@ vendor/
 .saves/
 /game
 tmp_*.txt
+.claude/
