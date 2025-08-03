@@ -1,25 +1,67 @@
 package ui
 
 import (
-	"fmt"
+	"encoding/json"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
+	"bubbleRouge/pkg/components"
+	"bubbleRouge/pkg/ecs"
+	"bubbleRouge/pkg/systems"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"bubbleRouge/pkg/engine"
 )
 
+func itoa(i int) string { return strconv.Itoa(i) }
+
+var mapRender *systems.MapRender
+
 type Model struct {
-	GS *engine.GameState
 	Width, Height int
-	log []string
+	log           []string
+	rng           *rand.Rand
+
+	world     *ecs.World
+	scheduler *ecs.Scheduler
+	render    *systems.Render
+	player    ecs.Entity
 }
 
-func NewModel(gs *engine.GameState) Model { return Model{GS: gs, log: gs.Log} }
+func NewModel(gs any) Model { return NewModelWithRNG(rand.New(rand.NewSource(1))) }
 
-func (m Model) Init() tea.Cmd { return nil }
+func NewModelWithRNG(r *rand.Rand) Model {
+	w := ecs.NewWorld(r)
+	render := &systems.Render{}
+	mapRender = &systems.MapRender{}
+	camera := &systems.CameraSystem{}
+	s := ecs.NewScheduler(systems.InputSystem{}, systems.Movement{}, systems.Harvest{}, systems.Combat{}, systems.Tick{}, camera, mapRender, render)
+	m := Model{rng: r, world: w, scheduler: s, render: render}
+	m.player = w.Create()
+	ecs.Add(w, m.player, components.Position{})
+	ecs.Add(w, m.player, components.Camera{Width: 200 - 30, Height: 80 - 5})
+	ecs.Add(w, m.player, components.Renderable{Glyph: '@'})
+	ecs.Add(w, m.player, components.Input{})
+	ecs.Add(w, m.player, components.Velocity{})
+	ecs.Add(w, 1, components.WorldInfo{Width: 200, Height: 80})
+	for y := 0; y < 80; y++ {
+		for x := 0; x < 200; x++ {
+			if (x+y)%11 == 0 {
+				e := w.Create()
+				ecs.Add(w, e, components.Position{X: float64(x), Y: float64(y)})
+				ecs.Add(w, e, components.Tile{Glyph: '*'})
+			}
+		}
+	}
+	ecs.Add(w, m.player, components.PlayerStats{Fuel: 100, Hull: 100, Drive: 1})
+	return m
+}
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Init() tea.Cmd { return nil }
+
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width, m.Height = msg.Width, msg.Height
@@ -28,17 +70,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			return m, tea.Quit
 		case "h", "left":
-			m.GS.Step(engine.ActMoveLeft)
+			systems.SetPlayerInput(m.world, m.player, "left")
 		case "l", "right":
-			m.GS.Step(engine.ActMoveRight)
+			systems.SetPlayerInput(m.world, m.player, "right")
 		case "k", "up":
-			m.GS.Step(engine.ActMoveUp)
+			systems.SetPlayerInput(m.world, m.player, "up")
 		case "j", "down":
-			m.GS.Step(engine.ActMoveDown)
-		case "g":
-			m.GS.Step(engine.ActHarvest)
+			systems.SetPlayerInput(m.world, m.player, "down")
+		case "ctrl+s":
+			m.save()
+		case "ctrl+o":
+			m.load()
+		case "ctrl+shift+s":
+			m.saveCompressed()
+		case "ctrl+shift+o":
+			m.loadCompressed()
+		case "1":
+			m.saveSlot(1)
+		case "2":
+			m.saveSlot(2)
+		case "3":
+			m.saveSlot(3)
+		case "shift+1":
+			m.loadSlot(1)
+		case "shift+2":
+			m.loadSlot(2)
+		case "shift+3":
+			m.loadSlot(3)
 		}
 	}
+	m.scheduler.Update(1.0, m.world)
 	return m, nil
 }
 
@@ -48,39 +109,133 @@ var (
 	playerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("45")).Render
 )
 
+func (m *Model) save() {
+	ss, _ := ecs.Save(m.world, nil)
+	b, _ := json.Marshal(ss)
+	_ = os.MkdirAll(".saves", 0o755)
+	_ = os.WriteFile(filepath.Join(".saves", "autosave.json"), b, 0o644)
+}
+func (m *Model) load() {
+	b, err := os.ReadFile(filepath.Join(".saves", "autosave.json"))
+	if err != nil {
+		return
+	}
+	var s ecs.Snapshot
+	if json.Unmarshal(b, &s) != nil {
+		return
+	}
+	_ = ecs.Load(m.world, &s, nil)
+}
+
+func (m *Model) saveCompressed() {
+	ss, _ := ecs.Save(m.world, nil)
+	b, _ := ecs.EncodeSnapshot(ss, ecs.SaveOptions{Compress: true})
+	_ = os.MkdirAll(".saves", 0o755)
+	_ = os.WriteFile(filepath.Join(".saves", "autosave.gz"), b, 0o644)
+}
+
+func (m *Model) loadCompressed() {
+	b, err := os.ReadFile(filepath.Join(".saves", "autosave.gz"))
+	if err != nil {
+		return
+	}
+	s, err := ecs.DecodeSnapshot(b, ecs.SaveOptions{Compress: true})
+	if err != nil {
+		return
+	}
+	_ = ecs.Load(m.world, s, nil)
+}
+
+func (m *Model) saveSlot(n int) {
+	ss, _ := ecs.Save(m.world, nil)
+	b, _ := ecs.EncodeSnapshot(ss, ecs.SaveOptions{Compress: true})
+	_ = os.MkdirAll(".saves", 0o755)
+	_ = os.WriteFile(filepath.Join(".saves", "slot"+itoa(n)+".gz"), b, 0o644)
+}
+
+func (m *Model) loadSlot(n int) {
+	b, err := os.ReadFile(filepath.Join(".saves", "slot"+itoa(n)+".gz"))
+	if err != nil {
+		return
+	}
+	s, err := ecs.DecodeSnapshot(b, ecs.SaveOptions{Compress: true})
+	if err != nil {
+		return
+	}
+	_ = ecs.Load(m.world, s, nil)
+}
+
 func (m Model) View() string {
-	if m.GS == nil { return "" }
 	w, h := m.Width, m.Height
-	if w == 0 { w = 120 }
-	if h == 0 { h = 40 }
+	if w == 0 {
+		w = 120
+	}
+	if h == 0 {
+		h = 40
+	}
 	// reserve panels
 	mapW, mapH := w-30, h-5
-	if mapW < 10 { mapW = 10 }
-	if mapH < 10 { mapH = 10 }
-	mx0 := m.GS.Player.Pos.X - mapW/2
-	my0 := m.GS.Player.Pos.Y - mapH/2
+	m.scheduler.Update(0, m.world)
+	if mapW < 10 {
+		mapW = 10
+	}
+	if mapH < 10 {
+		mapH = 10
+	}
+	cam, _ := ecs.Get[components.Camera](m.world, m.player)
+	mx0 := cam.X
+	my0 := cam.Y
+	canvas := make([][]rune, mapH)
+	for i := range canvas {
+		canvas[i] = make([]rune, mapW)
+	}
+	for y := 0; y < mapH; y++ {
+		for x := 0; x < mapW; x++ {
+			canvas[y][x] = '.'
+		}
+	}
+	// draw background tiles
+	for _, d := range mapRender.Output {
+		x := d.X - mx0
+		y := d.Y - my0
+		if x >= 0 && y >= 0 && x < mapW && y < mapH {
+			canvas[y][x] = d.Glyph
+		}
+	}
+	// draw entities
+	for _, d := range m.render.Output {
+		x := d.X - mx0
+		y := d.Y - my0
+		if x >= 0 && y >= 0 && x < mapW && y < mapH {
+			canvas[y][x] = d.Glyph
+		}
+	}
 	var b strings.Builder
 	for y := 0; y < mapH; y++ {
 		for x := 0; x < mapW; x++ {
-			gx, gy := mx0+x, my0+y
-			ch := " "
-			if gx == m.GS.Player.Pos.X && gy == m.GS.Player.Pos.Y {
+			ch := string(canvas[y][x])
+			if ch == "." {
+				ch = spaceStyle(".")
+			} else if ch == "@" {
 				ch = playerStyle("@")
-			} else if gx >= 0 && gy >= 0 && gx < m.GS.Map.Width && gy < m.GS.Map.Height {
-				k := m.GS.Map.Tiles[gy][gx].Kind
-				if k == engine.Galaxy {
-					ch = galStyle("*")
-				} else {
-					ch = spaceStyle(".")
-				}
 			}
 			b.WriteString(ch)
 		}
 		b.WriteByte('\n')
 	}
-	status := fmt.Sprintf("tick:%d size:%dx%d fuel:%d hull:%d drive:%d", m.GS.Tick, m.GS.Map.Width, m.GS.Map.Height, m.GS.Player.Fuel, m.GS.Player.Hull, m.GS.Player.DriveLevel)
+	wi, _ := ecs.Get[components.WorldInfo](m.world, 1)
+	ps, _ := ecs.Get[components.PlayerStats](m.world, m.player)
+	status := lipgloss.NewStyle().Width(30).Render(
+		strings.Join([]string{
+			"tick:", itoa(int(wi.Tick)),
+			"world:", itoa(wi.Width) + "x" + itoa(wi.Height),
+			"fuel:", itoa(ps.Fuel), "hull:", itoa(ps.Hull), "drive:", itoa(ps.Drive),
+			"",
+			strings.Join(m.log, "\n"),
+		}, " \n"),
+	)
 	return lipgloss.JoinHorizontal(lipgloss.Top,
 		lipgloss.NewStyle().Width(mapW).Height(mapH).Render(b.String()),
-		lipgloss.NewStyle().Width(30).Render(status+"\n\n"+strings.Join(m.GS.Log, "\n")),
+		status,
 	)
 }
