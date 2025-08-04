@@ -1,0 +1,5 @@
+module GameEngine {
+    header "libgame.h"
+    link "game"
+    export *
+}
