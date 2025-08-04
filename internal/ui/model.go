@@ -9,13 +9,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"harvester/pkg/components"
+	"harvester/pkg/debug"
 	"harvester/pkg/ecs"
 	"harvester/pkg/engine"
 	"harvester/pkg/systems"
 	"harvester/pkg/timing"
 )
 
-var mapRender *systems.MapRender
+// Removed mapRender - now using unified render system
 
 type Model struct {
 	Width, Height int
@@ -38,6 +39,7 @@ func (m *Model) World() *ecs.World { return m.world }
 func NewModel(gs any) Model { return NewModelWithRNG(rand.New(rand.NewSource(1))) }
 
 func NewModelWithRNG(r *rand.Rand) Model {
+	debug.Info("model", "Initializing new model with RNG")
 	bs := engine.New(r)
 	w := bs.World
 	m := Model{
@@ -47,8 +49,8 @@ func NewModelWithRNG(r *rand.Rand) Model {
 		render:        bs.Render,
 		layoutManager: NewLayoutManager(120, 40),
 	}
-	mapRender = bs.MapRender
 	m.player = bs.Player
+	debug.Infof("model", "Model initialized with player entity %d", m.player)
 	for y := 0; y < 80; y++ {
 		for x := 0; x < 200; x++ {
 			n := (x*73856093 ^ y*19349663) % 100
@@ -90,11 +92,13 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		debug.Debugf("ui", "Window resized to %dx%d", msg.Width, msg.Height)
 		m.Width, m.Height = msg.Width, msg.Height
 		m.layoutManager.Update(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		// key handling moved to unified input router
 	case time.Time:
+		frameTimer := debug.StartSystemTimer("frame")
 		prev := ecs.GetWorldContext(m.world)
 		start := time.Now()
 
@@ -107,21 +111,36 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		// Record metrics
+		debug.RecordFrame()
+		debug.SetEntityCount(m.world.EntityCount())
+		debug.UpdateMemoryStats()
+
+		updateTimer := debug.StartSystemTimer("scheduler")
 		m.scheduler.Update(1.0/20.0, m.world)
+		updateTimer.Stop()
+
 		m.frame++ // Increment frame counter for animations
 
 		// Autosave is now handled at a higher level
 		dur := time.Since(start)
+		debug.RecordUpdateTime(dur)
+
 		if os.Getenv("DEBUG_TICK") == "1" {
+			debug.Debugf("performance", "Engine tick took %v", dur)
 			m.log = append(m.log, "engine dt:0.05 ui dt:0.0167 tick:"+dur.String())
 			if len(m.log) > 5 {
 				m.log = m.log[len(m.log)-5:]
 			}
 		}
+
 		next := ecs.GetWorldContext(m.world)
 		if prev.CurrentLayer != next.CurrentLayer {
+			debug.Infof("game", "Layer changed from %s to %s", layerName(prev.CurrentLayer), layerName(next.CurrentLayer))
 			m.log = append(m.log, "Layer: "+layerName(next.CurrentLayer))
 		}
+
+		frameTimer.Stop()
 		return m, tea.Tick(time.Second/60, func(t time.Time) tea.Msg { return t })
 	}
 	return m, nil
@@ -220,8 +239,12 @@ func (m *Model) renderStatusBar(w int) string {
 */
 
 func (m *Model) renderMap(mapW, mapH int) string {
+	renderTimer := debug.StartSystemTimer("map_render")
+	defer renderTimer.Stop()
+
 	m.scheduler.Update(0, m.world)
 	cam, _ := ecs.Get[components.Camera](m.world, m.player)
+	debug.Debugf("render", "Rendering map %dx%d, camera at (%d, %d)", mapW, mapH, cam.X, cam.Y)
 	mx0, my0 := cam.X, cam.Y
 	canvas := make([][]rune, mapH)
 	for i := range canvas {
@@ -232,13 +255,7 @@ func (m *Model) renderMap(mapW, mapH int) string {
 			canvas[y][x] = '.'
 		}
 	}
-	for _, d := range mapRender.Output {
-		x := d.X - mx0
-		y := d.Y - my0
-		if x >= 0 && y >= 0 && x < mapW && y < mapH {
-			canvas[y][x] = d.Glyph
-		}
-	}
+	// Use unified render system for all drawables (tiles and entities)
 	for _, d := range m.render.Output {
 		x := d.X - mx0
 		y := d.Y - my0
@@ -247,8 +264,8 @@ func (m *Model) renderMap(mapW, mapH int) string {
 		}
 	}
 	var b strings.Builder
-	styled := make(map[[2]int]string, len(mapRender.Output))
-	for _, d := range mapRender.Output {
+	styled := make(map[[2]int]string, len(m.render.Output))
+	for _, d := range m.render.Output {
 		x := d.X - mx0
 		y := d.Y - my0
 		if x >= 0 && y >= 0 && x < mapW && y < mapH {
@@ -275,7 +292,6 @@ func (m *Model) renderMap(mapW, mapH int) string {
 func (m *Model) renderUI(mapStr, rightStr, statusStr, logStr string) string {
 	return m.layoutManager.RenderWithLayout(mapStr, rightStr, statusStr, logStr)
 }
-
 
 func (m Model) View() string {
 	// Update layout manager if dimensions changed
