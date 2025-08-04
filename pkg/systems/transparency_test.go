@@ -28,7 +28,7 @@ func TestTransparencyComponent(t *testing.T) {
 	}
 }
 
-func TestMapRenderWithTransparency(t *testing.T) {
+func TestRenderWithTransparency(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	world := ecs.NewWorld(r)
 
@@ -44,16 +44,28 @@ func TestMapRenderWithTransparency(t *testing.T) {
 		BlendMode: components.BlendNormal,
 	})
 
-	// Create map renderer
-	mapRender := &MapRender{}
-	mapRender.Update(0.0, world)
+	// Create unified renderer
+	render := &Render{}
+	render.Update(0.0, world)
 
 	// Verify alpha was applied
-	if len(mapRender.Output) != 1 {
-		t.Fatalf("Expected 1 drawable, got %d", len(mapRender.Output))
+	if len(render.Output) == 0 {
+		t.Fatalf("Expected at least 1 drawable, got 0")
 	}
 
-	drawable := mapRender.Output[0]
+	// Find our test drawable
+	var drawable *Drawable
+	for _, d := range render.Output {
+		if d.X == 5 && d.Y == 5 {
+			drawable = &d
+			break
+		}
+	}
+
+	if drawable == nil {
+		t.Fatalf("Could not find drawable at position (5, 5)")
+	}
+
 	if drawable.Alpha != 0.7 {
 		t.Errorf("Expected alpha 0.7, got %f", drawable.Alpha)
 	}
@@ -62,7 +74,7 @@ func TestMapRenderWithTransparency(t *testing.T) {
 	}
 }
 
-func TestMapRenderWithoutTransparency(t *testing.T) {
+func TestRenderWithoutTransparency(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	world := ecs.NewWorld(r)
 
@@ -74,16 +86,28 @@ func TestMapRenderWithoutTransparency(t *testing.T) {
 		Type:  components.TileForest,
 	})
 
-	// Create map renderer
-	mapRender := &MapRender{}
-	mapRender.Update(0.0, world)
+	// Create unified renderer
+	render := &Render{}
+	render.Update(0.0, world)
 
 	// Verify default alpha (opaque)
-	if len(mapRender.Output) != 1 {
-		t.Fatalf("Expected 1 drawable, got %d", len(mapRender.Output))
+	if len(render.Output) == 0 {
+		t.Fatalf("Expected at least 1 drawable, got 0")
 	}
 
-	drawable := mapRender.Output[0]
+	// Find our test drawable
+	var drawable *Drawable
+	for _, d := range render.Output {
+		if d.X == 5 && d.Y == 5 {
+			drawable = &d
+			break
+		}
+	}
+
+	if drawable == nil {
+		t.Fatalf("Could not find drawable at position (5, 5)")
+	}
+
 	if drawable.Alpha != 1.0 {
 		t.Errorf("Expected alpha 1.0 (opaque), got %f", drawable.Alpha)
 	}

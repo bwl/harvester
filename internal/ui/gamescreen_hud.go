@@ -8,16 +8,14 @@ import (
 	"harvester/pkg/components"
 	"harvester/pkg/ecs"
 	"harvester/pkg/rendering"
-	"harvester/pkg/systems"
 )
 
 func buildGameGlyphs(m *Model, w, h int) [][]rendering.Glyph {
 	if w <= 0 || h <= 0 {
 		return nil
 	}
+	// Use unified render system for all drawables
 	m.render.Update(0, m.world)
-	mr := systems.MapRender{}
-	mr.Update(0, m.world)
 	cam, _ := ecs.Get[components.Camera](m.world, m.player)
 	mx0, my0 := cam.X, cam.Y
 	glyphs := make([][]rendering.Glyph, h)
@@ -27,13 +25,6 @@ func buildGameGlyphs(m *Model, w, h int) [][]rendering.Glyph {
 			row[x] = rendering.Glyph{Char: '.'}
 		}
 		glyphs[y] = row
-	}
-	for _, d := range mr.Output {
-		x := d.X - mx0
-		y := d.Y - my0
-		if x >= 0 && y >= 0 && x < w && y < h {
-			glyphs[y][x] = rendering.Glyph{Char: rune(d.Glyph)}
-		}
 	}
 	for _, d := range m.render.Output {
 		x := d.X - mx0
@@ -54,7 +45,6 @@ func buildHUDGlyphs(m *Model, w int) [][]rendering.Glyph {
 	line := style.Render(hudText)
 	return rendering.RenderLipglossString([]string{strings.TrimRight(line, "\n")}, rendering.Color{}, rendering.Color{}, rendering.StyleNone)
 }
-
 
 type hudContent struct {
 	g [][]rendering.Glyph
