@@ -2,24 +2,36 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"harvester/pkg/debug"
 	"harvester/pkg/ecs"
 	"harvester/pkg/rendering"
 )
 
 // SpaceScreen handles space navigation and planet selection
 type SpaceScreen struct {
-	model *Model
+	model  *Model
+	width  int
+	height int
 }
 
 func (s *SpaceScreen) RegisterContent(renderer *rendering.ViewRenderer) {
 	w, h := renderer.GetDimensions()
+
+	// Use SpaceScreen's own dimensions if available, fallback to renderer dimensions
+	if s.width > 0 && s.height > 0 {
+		w, h = s.width, s.height
+	}
+
 	if w == 0 || h == 0 {
+		debug.Warn("spacescreen", "Zero dimensions received in RegisterContent, skipping render")
 		return
 	}
-	// Build space map via systems.MapRender using current world
+	// Build space map via unified render system using current world
 	gm := buildGameGlyphs(s.model, w, h-3)
 	if gm != nil {
 		renderer.RegisterContent(newExpanseContent(gm))
+	} else {
+		debug.Warn("spacescreen", "buildGameGlyphs returned nil")
 	}
 }
 
@@ -59,6 +71,12 @@ func (s *SpaceScreen) HandleGlobalAction(action GlobalAction) (SubScreen, tea.Cm
 	default:
 		return s, nil
 	}
+}
+
+// SetDimensions implements ResizableScreen interface
+func (s *SpaceScreen) SetDimensions(width, height int) {
+	s.width = width
+	s.height = height
 }
 
 // Check if player is over a planet and pressed enter

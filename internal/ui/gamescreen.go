@@ -70,6 +70,12 @@ func (p *PlanetScreen) HandleGlobalAction(action GlobalAction) (SubScreen, tea.C
 	}
 }
 
+// SetDimensions implements ResizableScreen interface
+func (p *PlanetScreen) SetDimensions(width, height int) {
+	p.width = width
+	p.height = height
+}
+
 // Planet-specific rendering functions
 
 func buildPlanetHUDGlyphs(m *Model, width int) [][]rendering.Glyph {

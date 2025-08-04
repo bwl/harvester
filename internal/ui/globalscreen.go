@@ -31,6 +31,11 @@ type RenderableScreen interface {
 	RegisterContent(renderer *rendering.ViewRenderer)
 }
 
+// ResizableScreen interface for screens that need window dimension updates
+type ResizableScreen interface {
+	SetDimensions(width, height int)
+}
+
 // GlobalAction represents actions that affect the entire application
 type GlobalAction int
 
@@ -139,8 +144,9 @@ func (g *GlobalScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if windowMsg, ok := msg.(tea.WindowSizeMsg); ok {
 		g.width = windowMsg.Width
 		g.height = windowMsg.Height
-		if gs, ok := g.subScreen.(*StartScreen); ok {
-			_ = gs // StartScreen handles its own renderer sizing
+		// Forward window size to all resizable screens
+		if resizable, ok := g.subScreen.(ResizableScreen); ok {
+			resizable.SetDimensions(windowMsg.Width, windowMsg.Height)
 		}
 	}
 
@@ -307,14 +313,28 @@ func (g *GlobalScreen) createSpaceScreen(result *StartResult) SubScreen {
 	// Create model with appropriate save data loaded
 	model := g.createModelWithSaveData(result)
 	// Create space navigation screen
-	return NewSpaceScreen(model)
+	spaceScreen := NewSpaceScreen(model)
+
+	// Forward current window dimensions to the new screen
+	if g.width > 0 && g.height > 0 {
+		spaceScreen.SetDimensions(g.width, g.height)
+	}
+
+	return spaceScreen
 }
 
 func (g *GlobalScreen) createPlanetScreen(result *StartResult) SubScreen {
 	// Create model with appropriate save data loaded
 	model := g.createModelWithSaveData(result)
 	// Create planet exploration screen
-	return NewPlanetScreen(model)
+	planetScreen := NewPlanetScreen(model)
+	
+	// Forward current window dimensions to the new screen
+	if g.width > 0 && g.height > 0 {
+		planetScreen.SetDimensions(g.width, g.height)
+	}
+	
+	return planetScreen
 }
 
 func (g *GlobalScreen) createModelWithSaveData(result *StartResult) *Model {
