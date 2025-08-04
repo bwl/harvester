@@ -34,6 +34,8 @@ func (r *RootView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if r.debugPanel != nil {
 			r.debugPanel.SetDimensions(r.w, r.h)
 		}
+		// Forward dimensions to GlobalScreen so it can start opening animation
+		r.global.SetDimensions(r.w, r.h)
 	}
 	if km, ok := msg.(tea.KeyMsg); ok {
 		// Check for debug panel toggle first

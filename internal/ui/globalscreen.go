@@ -247,6 +247,16 @@ func (g *GlobalScreen) RegisterContent(renderer *rendering.ViewRenderer) {
 	}
 }
 
+func (g *GlobalScreen) SetDimensions(width, height int) {
+	g.width = width
+	g.height = height
+	
+	// Forward dimensions to current sub-screen if it supports resizing
+	if resizable, ok := g.subScreen.(ResizableScreen); ok {
+		resizable.SetDimensions(width, height)
+	}
+}
+
 func (g *GlobalScreen) HandleInput(a InputAction) tea.Cmd {
 	if a.Kind == InputQuit {
 		g.startShutdownAnimation()
