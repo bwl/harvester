@@ -9,11 +9,10 @@ import (
 )
 
 type Controller struct {
-	World     *ecs.World
-	Sched     *ecs.Scheduler
-	Player    ecs.Entity
-	Render    *systems.Render
-	MapRender *systems.MapRender
+	World  *ecs.World
+	Sched  *ecs.Scheduler
+	Player ecs.Entity
+	Render *systems.Render
 }
 
 type Options struct {
@@ -25,10 +24,9 @@ type Options struct {
 func NewController(opt Options) *Controller {
 	w := ecs.NewWorld(nil)
 	r := &systems.Render{}
-	mr := &systems.MapRender{}
 	cam := &systems.CameraSystem{}
-	s := ecs.NewScheduler(systems.InputSystem{}, systems.Movement{}, cam, systems.Harvest{}, systems.Combat{}, systems.Tick{}, mr, r)
-	c := &Controller{World: w, Sched: s, Render: r, MapRender: mr}
+	s := ecs.NewScheduler(systems.InputSystem{}, systems.Movement{}, cam, systems.Harvest{}, systems.Combat{}, systems.Tick{}, r)
+	c := &Controller{World: w, Sched: s, Render: r}
 	// player
 	p := w.Create()
 	ecs.Add(w, p, components.Position{})

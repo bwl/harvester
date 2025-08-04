@@ -2,6 +2,7 @@ package systems
 
 import (
 	"harvester/pkg/components"
+	"harvester/pkg/debug"
 	"harvester/pkg/ecs"
 )
 
@@ -58,6 +59,7 @@ func (InputSystem) Update(dt float64, w *ecs.World) {
 }
 
 func SetPlayerInput(w *ecs.World, e ecs.Entity, dir string) {
+	debug.Debugf("input", "Player input: %s for entity %d", dir, e)
 	in, _ := ecs.Get[components.Input](w, e)
 	switch dir {
 	case "left":
@@ -69,6 +71,7 @@ func SetPlayerInput(w *ecs.World, e ecs.Entity, dir string) {
 	case "down":
 		in.Left, in.Right, in.Up, in.Down = false, false, false, true
 	case "enter":
+		debug.Info("input", "Player entering planet")
 		in.Left, in.Right, in.Up, in.Down = false, false, false, false
 		ecs.Add(w, e, EnterPlanet{})
 	case "clear":

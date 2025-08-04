@@ -17,7 +17,7 @@ func TestRootView_RendersPlanetPanelsThroughGlobalRenderer(t *testing.T) {
 	gs.subScreen = s
 	m, _ := gs.handleStartScreenResult(s.result)
 	g := m.(*GlobalScreen)
-	// Transitions are completed immediately  
+	// Transitions are completed immediately
 	space := g.subScreen.(*SpaceScreen)
 	_, _ = space.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	// switch layer to planet and process

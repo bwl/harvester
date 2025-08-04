@@ -12,13 +12,11 @@ type Bootstrap struct {
 	Scheduler *ecs.SchedulerWithContext
 	Player    ecs.Entity
 	Render    *systems.Render
-	MapRender *systems.MapRender
 }
 
 func New(r *rand.Rand) Bootstrap {
 	w := ecs.NewWorld(r)
 	render := &systems.Render{}
-	mapRender := &systems.MapRender{}
 
 	// Create player first
 	p := w.Create()
@@ -39,12 +37,12 @@ func New(r *rand.Rand) Bootstrap {
 	camera := &systems.CameraSystem{Target: p}
 
 	reg := ecs.SystemRegistry{
-		UniversalSystems: []ecs.System{systems.InputSystem{}, &systems.PulseSystem{}, systems.Tick{}, camera, systems.LevelManager{}, mapRender, render},
+		UniversalSystems: []ecs.System{systems.InputSystem{}, &systems.PulseSystem{}, systems.Tick{}, camera, systems.LevelManager{}, render},
 		SpaceSystems:     []ecs.System{systems.SpaceMovement{}, systems.FuelSystem{}, systems.PlanetApproachSystem{}, systems.PlanetSelection{}},
 		SurfaceSystems:   []ecs.System{systems.SurfaceHeartbeat{}, systems.TerrainGen{}, systems.SurfaceMovement{}, systems.DepthProgression{}, systems.WeatherTick{}, systems.RiverFlow{}, systems.TradeRoutePatrols{}, systems.WildlifeSpawn{}, systems.KingdomGuards{}, systems.QuestSystem{}},
 	}
 	s := ecs.NewSchedulerWithContext(reg)
 	ecs.Add(w, 1, components.WorldInfo{Width: 200, Height: 80})
 	ecs.SetWorldContext(w, ecs.WorldContext{CurrentLayer: ecs.LayerSpace, QuestProgress: ecs.QuestProgress{ContractsNeeded: 5}})
-	return Bootstrap{World: w, Scheduler: s, Player: p, Render: render, MapRender: mapRender}
+	return Bootstrap{World: w, Scheduler: s, Player: p, Render: render}
 }

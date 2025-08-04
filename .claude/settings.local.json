@@ -5,7 +5,9 @@
       "WebFetch(domain:charm.land)",
       "Bash(go build:*)",
       "Bash(go test:*)",
-      "WebFetch(domain:pkg.go.dev)"
+      "WebFetch(domain:pkg.go.dev)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

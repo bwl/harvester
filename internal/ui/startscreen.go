@@ -46,7 +46,7 @@ type StartScreen struct {
 
 	// Background terrain using TOFT system
 	backgroundWorld *ecs.World
-	mapRenderer     *systems.MapRender
+	renderer        *systems.Render
 
 	// Save game manager
 	saveManager *SaveGameManager
@@ -90,7 +90,7 @@ func (s *StartScreen) initBackgroundTerrain() {
 	ecs.Add(s.backgroundWorld, 1, worldInfo)
 
 	// Initialize map renderer using the same system as the game
-	s.mapRenderer = &systems.MapRender{}
+	s.renderer = &systems.Render{}
 }
 
 func (s *StartScreen) generateBackgroundTerrain() {
@@ -121,10 +121,10 @@ func (s *StartScreen) generateBackgroundTerrain() {
 
 // Compositor-driven background content
 func (s *StartScreen) renderBackgroundContent() rendering.RenderableContent {
-	if s.backgroundWorld == nil || s.mapRenderer == nil || s.width == 0 || s.height == 0 {
+	if s.backgroundWorld == nil || s.renderer == nil || s.width == 0 || s.height == 0 {
 		return nil
 	}
-	s.mapRenderer.Update(0, s.backgroundWorld)
+	s.renderer.Update(0, s.backgroundWorld)
 	glyphs := make([][]rendering.Glyph, s.height)
 	for y := 0; y < s.height; y++ {
 		row := make([]rendering.Glyph, s.width)
@@ -133,7 +133,7 @@ func (s *StartScreen) renderBackgroundContent() rendering.RenderableContent {
 		}
 		glyphs[y] = row
 	}
-	for _, drawable := range s.mapRenderer.Output {
+	for _, drawable := range s.renderer.Output {
 		x, y := drawable.X, drawable.Y
 		if x >= 0 && x < s.width && y >= 0 && y < s.height {
 			glyphs[y][x] = rendering.Glyph{Char: rune(drawable.Glyph)}
@@ -209,7 +209,6 @@ func (s *StartScreen) scanSaveFiles() {
 
 	s.menuItems = append(s.menuItems, "New Game", "Quit")
 }
-
 
 func (s *StartScreen) buildMenuItems() {
 	// Menu items are built in scanSaveFiles

@@ -23,6 +23,7 @@ const (
 	InputMenuRight
 	InputMenuSelect
 	InputMenuBack
+	InputDebugToggle
 )
 
 type InputAction struct{ Kind InputKind }

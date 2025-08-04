@@ -46,6 +46,12 @@ func (w *World) Destroy(e Entity) {
 	w.mu.Unlock()
 }
 
+func (w *World) EntityCount() int {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	return int(w.next) - len(w.free)
+}
+
 func storeOf[T any](w *World) *store[T] {
 	t := reflect.TypeOf((*T)(nil)).Elem()
 	st, ok := w.stores[t]
