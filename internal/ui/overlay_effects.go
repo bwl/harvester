@@ -94,8 +94,8 @@ func (c *CRTShutdownOverlay) GetGlyphs() [][]rendering.Glyph {
 			} else {
 				row[x] = rendering.Glyph{
 					Char:       ' ',
-					Foreground: rendering.Color{R: 0, G: 0, B: 0},
-					Background: rendering.Color{R: 0, G: 0, B: 0},
+					Foreground: rendering.Color{R: 24, G: 24, B: 28},
+					Background: rendering.Color{R: 24, G: 24, B: 28},
 					Style:      rendering.StyleNone,
 					Alpha:      alpha, // 1.0 = hide content, 0.0 = show content
 					BlendMode:  components.BlendNormal,
@@ -196,8 +196,8 @@ func (c *CRTOpeningOverlay) GetGlyphs() [][]rendering.Glyph {
 			} else {
 				row[x] = rendering.Glyph{
 					Char:       ' ',
-					Foreground: rendering.Color{R: 0, G: 0, B: 0},
-					Background: rendering.Color{R: 0, G: 0, B: 0},
+					Foreground: rendering.Color{R: 24, G: 24, B: 28},
+					Background: rendering.Color{R: 24, G: 24, B: 28},
 					Style:      rendering.StyleNone,
 					Alpha:      alpha, // 1.0 = hide content, 0.0 = show content
 					BlendMode:  components.BlendNormal,

@@ -16,7 +16,7 @@ func (t *tvFrame) GetGlyphs() [][]rendering.Glyph {
 	for y := 0; y < t.h; y++ {
 		g[y] = make([]rendering.Glyph, t.w)
 	}
-	black := rendering.Color{R: 0, G: 0, B: 0}
+	black := rendering.Color{R: 24, G: 24, B: 28}
 	pad := 3
 	// top and bottom borders
 	for y := 0; y < pad && y < t.h; y++ {

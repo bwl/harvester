@@ -62,8 +62,8 @@ func (f *FadeOverlay) GetGlyphs() [][]rendering.Glyph {
 		for x := 0; x < f.width; x++ {
 			row[x] = rendering.Glyph{
 				Char:       ' ',
-				Foreground: rendering.Color{R: 0, G: 0, B: 0},
-				Background: rendering.Color{R: 0, G: 0, B: 0},
+				Foreground: rendering.Color{R: 24, G: 24, B: 28},
+				Background: rendering.Color{R: 24, G: 24, B: 28},
 				Style:      rendering.StyleNone,
 				Alpha:      easedAlpha,
 				BlendMode:  components.BlendNormal,
@@ -171,7 +171,7 @@ func (w *WaveDistortionOverlay) GetGlyphs() [][]rendering.Glyph {
 			// Create subtle distortion effect
 			row[x] = rendering.Glyph{
 				Char:       ' ',
-				Foreground: rendering.Color{R: 0, G: 0, B: 0},
+				Foreground: rendering.Color{R: 24, G: 24, B: 28},
 				Background: rendering.Color{R: 8, G: 8, B: 12}, // Very subtle blue
 				Style:      rendering.StyleNone,
 				Alpha:      alphaModulation,
