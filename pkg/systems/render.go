@@ -1,9 +1,10 @@
 package systems
 
 import (
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 	"harvester/pkg/components"
 	"harvester/pkg/ecs"
+	"image/color"
 	"math"
 	"math/rand"
 	"strconv"
@@ -51,7 +52,7 @@ func applyColorModifier(base lipgloss.Style, mod *components.ColorModifier, dt f
 	switch mod.Special {
 	case components.EffectPulsing:
 		brightness := 0.5 + 0.5*math.Sin(dt*mod.PulseRate)
-		if fg, ok := base.GetForeground().(lipgloss.Color); ok {
+		if fg := base.GetForeground(); fg != nil {
 			return base.Foreground(adjustBrightness(fg, brightness))
 		}
 		return base
@@ -65,7 +66,7 @@ func applyColorModifier(base lipgloss.Style, mod *components.ColorModifier, dt f
 	return base
 }
 
-func adjustBrightness(c lipgloss.Color, factor float64) lipgloss.Color { return c }
+func adjustBrightness(c color.Color, factor float64) color.Color { return c }
 
 func (r *Render) Update(dt float64, w *ecs.World) {
 	ctx := ecs.GetWorldContext(w)

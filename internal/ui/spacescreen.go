@@ -29,7 +29,7 @@ func (s *SpaceScreen) RegisterContent(renderer *rendering.ViewRenderer) {
 	// Build space map via unified render system using current world
 	gm := buildGameGlyphs(s.model, w, h-3)
 	if gm != nil {
-		renderer.RegisterContent(newExpanseContent(gm))
+		renderer.RegisterContent(NewExpanseContent(gm))
 	} else {
 		debug.Warn("spacescreen", "buildGameGlyphs returned nil")
 	}

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 	screens "harvester/internal/ui/screens"
 	"harvester/pkg/components"
 	"harvester/pkg/ecs"
@@ -14,6 +14,47 @@ import (
 	"harvester/pkg/systems"
 	"harvester/pkg/timing"
 )
+
+// Helper function to convert text lines to glyph matrix
+func convertLinesToGlyphs(lines []string, fg, bg rendering.Color, style rendering.Style) [][]rendering.Glyph {
+	if len(lines) == 0 {
+		return nil
+	}
+	
+	// Find max width
+	maxWidth := 0
+	for _, line := range lines {
+		if w := len([]rune(line)); w > maxWidth {
+			maxWidth = w
+		}
+	}
+	
+	glyphs := make([][]rendering.Glyph, len(lines))
+	for y, line := range lines {
+		runes := []rune(line)
+		row := make([]rendering.Glyph, maxWidth)
+		for x := 0; x < maxWidth; x++ {
+			if x < len(runes) {
+				row[x] = rendering.Glyph{
+					Char:       runes[x],
+					Foreground: fg,
+					Background: bg,
+					Style:      style,
+				}
+			} else {
+				row[x] = rendering.Glyph{
+					Char:       ' ',
+					Foreground: fg,
+					Background: bg,
+					Style:      style,
+				}
+			}
+		}
+		glyphs[y] = row
+	}
+	
+	return glyphs
+}
 
 type StartAction int
 
@@ -120,7 +161,7 @@ func (s *StartScreen) generateBackgroundTerrain() {
 }
 
 // Compositor-driven background content
-func (s *StartScreen) renderBackgroundContent() rendering.RenderableContent {
+func (s *StartScreen) renderBackgroundContent() rendering.LayerContent {
 	if s.backgroundWorld == nil || s.renderer == nil || s.width == 0 || s.height == 0 {
 		return nil
 	}
@@ -143,7 +184,7 @@ func (s *StartScreen) renderBackgroundContent() rendering.RenderableContent {
 }
 
 // Compositor-driven menu content
-func (s *StartScreen) renderMenuContent() rendering.RenderableContent {
+func (s *StartScreen) renderMenuContent() rendering.LayerContent {
 	var content string
 	if s.showSlots {
 		content = s.renderSlotSelection()
@@ -151,7 +192,7 @@ func (s *StartScreen) renderMenuContent() rendering.RenderableContent {
 		content = s.renderMainMenu()
 	}
 	lines := strings.Split(content, "\n")
-	glyphs := rendering.RenderLipglossString(lines, rendering.Color{R: 220, G: 220, B: 220}, rendering.Color{}, rendering.StyleNone)
+	glyphs := convertLinesToGlyphs(lines, rendering.Color{R: 220, G: 220, B: 220}, rendering.Color{}, rendering.StyleNone)
 	w := 0
 	for _, l := range lines {
 		if lw := len([]rune(l)); lw > w {

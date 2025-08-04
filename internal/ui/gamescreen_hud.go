@@ -2,9 +2,8 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 	"harvester/pkg/components"
 	"harvester/pkg/ecs"
 	"harvester/pkg/rendering"
@@ -36,31 +35,34 @@ func buildGameGlyphs(m *Model, w, h int) [][]rendering.Glyph {
 	return glyphs
 }
 
-func buildHUDGlyphs(m *Model, w int) [][]rendering.Glyph {
-	ps, _ := ecs.Get[components.PlayerStats](m.world, m.player)
-	ctx := ecs.GetWorldContext(m.world)
-	hudText := fmt.Sprintf("HP:%d Fuel:%d Drive:%d  Layer:%s  Tick:%d",
-		ps.Hull, ps.Fuel, ps.Drive, layerName(ctx.CurrentLayer), int(m.frame))
-	style := lipgloss.NewStyle().Bold(true)
-	line := style.Render(hudText)
-	return rendering.RenderLipglossString([]string{strings.TrimRight(line, "\n")}, rendering.Color{}, rendering.Color{}, rendering.StyleNone)
-}
-
 type hudContent struct {
-	g [][]rendering.Glyph
-	w int
+	model *Model
+	w     int
 }
 
-func newHUDContent(g [][]rendering.Glyph) *hudContent {
-	if g == nil {
-		return nil
-	}
-	return &hudContent{g: g, w: len(g[0])}
+func newHUDContent(model *Model) *hudContent {
+	return &hudContent{model: model, w: 80} // Default width
 }
+
 func (h *hudContent) GetLayer() rendering.Layer { return rendering.LayerMenu }
 func (h *hudContent) GetZ() int                 { return rendering.ZHUD }
-func (h *hudContent) GetPosition() rendering.Position {
-	return rendering.Position{Horizontal: rendering.Left, Vertical: rendering.Top, OffsetY: 2}
+
+func (h *hudContent) ToLipglossLayer() *lipgloss.Layer {
+	if h.model == nil {
+		return lipgloss.NewLayer("").X(0).Y(2).Z(h.GetZ()).ID("hud")
+	}
+
+	ps, _ := ecs.Get[components.PlayerStats](h.model.world, h.model.player)
+	ctx := ecs.GetWorldContext(h.model.world)
+	hudText := fmt.Sprintf("HP:%d Fuel:%d Drive:%d  Layer:%s  Tick:%d",
+		ps.Hull, ps.Fuel, ps.Drive, layerName(ctx.CurrentLayer), int(h.model.frame))
+
+	style := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#ffffff"))
+	styledText := style.Render(hudText)
+
+	return lipgloss.NewLayer(styledText).
+		X(0).
+		Y(2).
+		Z(h.GetZ()).
+		ID("hud")
 }
-func (h *hudContent) GetBounds() rendering.Bounds    { return rendering.Bounds{Width: h.w, Height: 1} }
-func (h *hudContent) GetGlyphs() [][]rendering.Glyph { return h.g }

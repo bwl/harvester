@@ -3,16 +3,16 @@ package ui
 import (
 	"testing"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 func TestThemeCreation(t *testing.T) {
 	// Test default theme
 	currentTheme := GetCurrentTheme()
-	if currentTheme.Primary == "" {
+	if currentTheme.Primary == nil {
 		t.Error("Default theme should have a primary color")
 	}
-	if currentTheme.Text == "" {
+	if currentTheme.Text == nil {
 		t.Error("Default theme should have a text color")
 	}
 }

@@ -1,74 +1,49 @@
 package rendering
 
-import "harvester/pkg/components"
-
+// Rendering layers for organizing content by type
 type Layer int
 
 const (
 	LayerGame Layer = iota
 	LayerUI
+	LayerHUD
 	LayerMenu
 	LayerTVFrame
 )
 
-type HorizontalAlign int
-
-type VerticalAlign int
-
-const (
-	Left HorizontalAlign = iota
-	CenterH
-	Right
-)
-
-const (
-	Top VerticalAlign = iota
-	CenterV
-	Bottom
-)
-
-type Position struct {
-	Horizontal HorizontalAlign
-	Vertical   VerticalAlign
-	OffsetX    int
-	OffsetY    int
+// Rect represents a rectangular area (for compatibility)
+type Rect struct {
+	X, Y, W, H int
 }
 
-type Bounds struct {
-	Width  int
-	Height int
+// GlyphMatrix represents a 2D matrix (deprecated, kept for compatibility)
+type GlyphMatrix struct {
+	W, H int
+	Data [][]interface{} // Empty interface since we don't use glyphs anymore
 }
 
-type Color struct {
-	R uint8
-	G uint8
-	B uint8
+func NewGlyphMatrix(w, h int) *GlyphMatrix {
+	return &GlyphMatrix{
+		W: w, H: h,
+		Data: make([][]interface{}, h),
+	}
 }
 
-type Style uint32
-
-const (
-	StyleNone Style = 0
-	StyleBold Style = 1 << iota
-	StyleItalic
-	StyleUnderline
-	StyleDim
-	StyleReverse
-)
-
-type Glyph struct {
-	Char       rune
-	Foreground Color
-	Background Color
-	Style      Style
-	Alpha      float64              // 0.0 = transparent, 1.0 = opaque
-	BlendMode  components.BlendMode // How this alpha should blend
+func (g *GlyphMatrix) Clear() {
+	// No-op since we don't use glyph data
 }
 
-type RenderableContent interface {
-	GetLayer() Layer
-	GetZ() int
-	GetPosition() Position
-	GetBounds() Bounds
-	GetGlyphs() [][]Glyph
+func (g *GlyphMatrix) InBounds(x, y int) bool {
+	return x >= 0 && x < g.W && y >= 0 && y < g.H
+}
+
+func (g *GlyphMatrix) SetGlyph(x, y int, glyph interface{}) {
+	// No-op since we don't use glyph data
+}
+
+func (g *GlyphMatrix) GetGlyph(x, y int) (interface{}, bool) {
+	if g.InBounds(x, y) {
+		return nil, true
+	}
+	return nil, false
 }

@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import "github.com/charmbracelet/lipgloss/v2"
 
 // Layout represents the overall UI layout configuration
 type Layout struct {

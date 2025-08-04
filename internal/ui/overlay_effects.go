@@ -2,9 +2,11 @@ package ui
 
 import (
 	"github.com/charmbracelet/harmonica"
+	"github.com/charmbracelet/lipgloss/v2"
 	"harvester/pkg/components"
 	"harvester/pkg/rendering"
 	"harvester/pkg/timing"
+	"strings"
 )
 
 // CRTShutdownOverlay creates an alpha-masked overlay for CRT shutdown effect
@@ -38,6 +40,60 @@ func (c *CRTShutdownOverlay) GetPosition() rendering.Position {
 
 func (c *CRTShutdownOverlay) GetBounds() rendering.Bounds {
 	return rendering.Bounds{Width: c.width, Height: c.height}
+}
+
+func (c *CRTShutdownOverlay) ToLipglossLayer() *lipgloss.Layer {
+	// Use harmonica spring for smooth CRT shutdown effect
+	spring := harmonica.NewSpring(timing.HarmonicaFPS, 8.0, 0.25)
+	pos := c.progress
+	vel := 0.0
+	easedProgress, _ := spring.Update(pos, vel, 1.0)
+
+	// TV frame padding
+	const tvPadding = 3
+	innerHeight := c.height - (2 * tvPadding)
+	if innerHeight < 1 {
+		innerHeight = 1
+	}
+	visibleHeight := int(float64(innerHeight) * (1.0 - easedProgress))
+	if visibleHeight < 1 {
+		visibleHeight = 1
+	}
+
+	// Create mask content - black bars at top and bottom
+	topMargin := tvPadding + (innerHeight-visibleHeight)/2
+	var content strings.Builder
+	
+	for y := 0; y < c.height; y++ {
+		if y > 0 {
+			content.WriteString("\n")
+		}
+		
+		// TV frame borders - transparent
+		if y < tvPadding || y >= c.height-tvPadding {
+			content.WriteString(strings.Repeat(" ", c.width))
+		} else if y < topMargin || y >= c.height-tvPadding-(innerHeight-visibleHeight)/2 {
+			// Masked area - dark overlay
+			innerLine := strings.Repeat("█", c.width-2*tvPadding)
+			line := strings.Repeat(" ", tvPadding) + innerLine + strings.Repeat(" ", tvPadding)
+			content.WriteString(line)
+		} else {
+			// Visible area - transparent
+			content.WriteString(strings.Repeat(" ", c.width))
+		}
+	}
+
+	style := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#181c1c")).
+		Background(lipgloss.Color("#181c1c"))
+
+	styledContent := style.Render(content.String())
+
+	return lipgloss.NewLayer(styledContent).
+		X(0).
+		Y(0).
+		Z(c.GetZ()).
+		ID("crt-shutdown-overlay")
 }
 
 func (c *CRTShutdownOverlay) GetGlyphs() [][]rendering.Glyph {
@@ -98,7 +154,7 @@ func (c *CRTShutdownOverlay) GetGlyphs() [][]rendering.Glyph {
 					Background: rendering.Color{R: 24, G: 24, B: 28},
 					Style:      rendering.StyleNone,
 					Alpha:      alpha, // 1.0 = hide content, 0.0 = show content
-					BlendMode:  components.BlendNormal,
+					BlendMode:  int(components.BlendNormal),
 				}
 			}
 		}
@@ -140,6 +196,61 @@ func (c *CRTOpeningOverlay) GetPosition() rendering.Position {
 
 func (c *CRTOpeningOverlay) GetBounds() rendering.Bounds {
 	return rendering.Bounds{Width: c.width, Height: c.height}
+}
+
+func (c *CRTOpeningOverlay) ToLipglossLayer() *lipgloss.Layer {
+	// Use harmonica spring for smooth CRT opening effect
+	spring := harmonica.NewSpring(timing.HarmonicaFPS, 12.0, 0.15)
+	pos := 1.0 - c.progress // Start from 1.0 and ease toward 0.0
+	vel := 0.0
+	maskedProgress, _ := spring.Update(pos, vel, 0.0)
+
+	// TV frame padding
+	const tvPadding = 3
+	innerHeight := c.height - (2 * tvPadding)
+	if innerHeight < 1 {
+		innerHeight = 1
+	}
+	visibleHeight := int(float64(innerHeight) * (1.0 - maskedProgress))
+	if visibleHeight < 0 {
+		visibleHeight = 0
+	}
+
+	// Create mask content - black bars at top and bottom
+	topMargin := tvPadding + (innerHeight-visibleHeight)/2
+	bottomMargin := c.height - tvPadding - (innerHeight-visibleHeight)/2
+	var content strings.Builder
+	
+	for y := 0; y < c.height; y++ {
+		if y > 0 {
+			content.WriteString("\n")
+		}
+		
+		// TV frame borders - transparent
+		if y < tvPadding || y >= c.height-tvPadding {
+			content.WriteString(strings.Repeat(" ", c.width))
+		} else if y < topMargin || y >= bottomMargin {
+			// Masked area - dark overlay
+			innerLine := strings.Repeat("█", c.width-2*tvPadding)
+			line := strings.Repeat(" ", tvPadding) + innerLine + strings.Repeat(" ", tvPadding)
+			content.WriteString(line)
+		} else {
+			// Visible area - transparent
+			content.WriteString(strings.Repeat(" ", c.width))
+		}
+	}
+
+	style := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#181c1c")).
+		Background(lipgloss.Color("#181c1c"))
+
+	styledContent := style.Render(content.String())
+
+	return lipgloss.NewLayer(styledContent).
+		X(0).
+		Y(0).
+		Z(c.GetZ()).
+		ID("crt-opening-overlay")
 }
 
 func (c *CRTOpeningOverlay) GetGlyphs() [][]rendering.Glyph {
@@ -200,7 +311,7 @@ func (c *CRTOpeningOverlay) GetGlyphs() [][]rendering.Glyph {
 					Background: rendering.Color{R: 24, G: 24, B: 28},
 					Style:      rendering.StyleNone,
 					Alpha:      alpha, // 1.0 = hide content, 0.0 = show content
-					BlendMode:  components.BlendNormal,
+					BlendMode:  int(components.BlendNormal),
 				}
 			}
 		}

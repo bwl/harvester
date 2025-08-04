@@ -1,10 +1,13 @@
 package ui
 
 import (
+	"image/color"
+	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 	"harvester/pkg/ecs"
+	"harvester/pkg/rendering"
 )
 
 // StyleBuilder provides a fluent interface for building complex styles
@@ -56,14 +59,14 @@ func (sb *StyleBuilder) Margin(top, right, bottom, left int) *StyleBuilder {
 }
 
 // Background sets background color
-func (sb *StyleBuilder) Background(color lipgloss.Color) *StyleBuilder {
-	sb.style = sb.style.Background(color)
+func (sb *StyleBuilder) Background(c color.Color) *StyleBuilder {
+	sb.style = sb.style.Background(c)
 	return sb
 }
 
 // Foreground sets foreground color
-func (sb *StyleBuilder) Foreground(color lipgloss.Color) *StyleBuilder {
-	sb.style = sb.style.Foreground(color)
+func (sb *StyleBuilder) Foreground(c color.Color) *StyleBuilder {
+	sb.style = sb.style.Foreground(c)
 	return sb
 }
 
@@ -92,8 +95,8 @@ func (sb *StyleBuilder) Border(border lipgloss.Border) *StyleBuilder {
 }
 
 // BorderColor sets border color
-func (sb *StyleBuilder) BorderColor(color lipgloss.Color) *StyleBuilder {
-	sb.style = sb.style.BorderForeground(color)
+func (sb *StyleBuilder) BorderColor(c color.Color) *StyleBuilder {
+	sb.style = sb.style.BorderForeground(c)
 	return sb
 }
 
@@ -397,4 +400,17 @@ func getTrendColor(trend TrendDirection) ThemeColor {
 	default:
 		return ThemeMuted
 	}
+}
+
+// ColorToHex converts a rendering.Color to a hex string
+func ColorToHex(c rendering.Color) string {
+	r := strconv.FormatInt(int64(c.R), 16)
+	g := strconv.FormatInt(int64(c.G), 16)
+	b := strconv.FormatInt(int64(c.B), 16)
+	
+	if len(r) == 1 { r = "0" + r }
+	if len(g) == 1 { g = "0" + g }
+	if len(b) == 1 { b = "0" + b }
+	
+	return r + g + b
 }

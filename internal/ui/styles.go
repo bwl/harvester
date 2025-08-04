@@ -1,19 +1,22 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss/v2"
+	"image/color"
+)
 
 type StyleTheme struct {
-	Primary       lipgloss.Color
-	Secondary     lipgloss.Color
-	Accent        lipgloss.Color
-	Muted         lipgloss.Color
-	Bg            lipgloss.Color
-	Text          lipgloss.Color
-	Border        lipgloss.Color
-	Success       lipgloss.Color
-	Warning       lipgloss.Color
-	Error         lipgloss.Color
-	TextSecondary lipgloss.Color
+	Primary       color.Color
+	Secondary     color.Color
+	Accent        color.Color
+	Muted         color.Color
+	Bg            color.Color
+	Text          color.Color
+	Border        color.Color
+	Success       color.Color
+	Warning       color.Color
+	Error         color.Color
+	TextSecondary color.Color
 }
 
 var theme = StyleTheme{

@@ -1,21 +1,34 @@
 package ui
 
-import "harvester/pkg/rendering"
+import (
+	"github.com/charmbracelet/lipgloss/v2"
+	"harvester/pkg/rendering"
+)
 
 type textBlock struct {
-	g    [][]rendering.Glyph
+	text string
 	w, h int
 }
 
 func newTextBlock(s string, w, h int) *textBlock {
-	lines := splitLines(s)
-	g := rendering.RenderLipglossString(lines, rendering.Color{}, rendering.Color{}, rendering.StyleNone)
-	return &textBlock{g: g, w: w, h: h}
+	return &textBlock{text: s, w: w, h: h}
 }
+
 func (t *textBlock) GetLayer() rendering.Layer { return rendering.LayerMenu }
 func (t *textBlock) GetZ() int                 { return rendering.ZContent + 10 }
-func (t *textBlock) GetPosition() rendering.Position {
-	return rendering.Position{Horizontal: rendering.Left, Vertical: rendering.Top}
+
+func (t *textBlock) ToLipglossLayer() *lipgloss.Layer {
+	style := lipgloss.NewStyle().
+		Width(t.w).
+		Height(t.h).
+		Foreground(lipgloss.Color("#ffffff"))
+
+	styledText := style.Render(t.text)
+
+	return lipgloss.NewLayer(styledText).
+		X(0).
+		Y(0).
+		Z(t.GetZ()).
+		ID("text-block")
 }
-func (t *textBlock) GetBounds() rendering.Bounds    { return rendering.Bounds{Width: t.w, Height: t.h} }
-func (t *textBlock) GetGlyphs() [][]rendering.Glyph { return t.g }
+

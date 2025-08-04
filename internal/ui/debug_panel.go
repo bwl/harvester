@@ -2,10 +2,11 @@ package ui
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 	"harvester/pkg/debug"
 )
 
@@ -418,7 +419,7 @@ func (dp *DebugPanel) renderFooter(width int) string {
 	return helpStyle.Render(strings.Join(help, " | "))
 }
 
-func (dp *DebugPanel) getLogLevelColor(level debug.LogLevel) lipgloss.Color {
+func (dp *DebugPanel) getLogLevelColor(level debug.LogLevel) color.Color {
 	switch level {
 	case debug.LogDebug:
 		return lipgloss.Color("246") // dim gray

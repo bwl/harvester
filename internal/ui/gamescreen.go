@@ -23,14 +23,8 @@ func (p *PlanetScreen) RegisterContent(renderer *rendering.ViewRenderer) {
 	if gm != nil {
 		renderer.RegisterContent(newPlanetSurfaceContent(gm))
 	}
-	hud := buildPlanetHUDGlyphs(p.model, p.width)
-	if hud != nil {
-		renderer.RegisterContent(newHUDContent(hud))
-	}
-	rp := buildRightPanelGlyphs(p.model)
-	if rp != nil {
-		renderer.RegisterContent(newUIRightPanel(rp))
-	}
+	renderer.RegisterContent(newHUDContent(p.model))
+	renderer.RegisterContent(newUIRightPanel(p.model))
 }
 
 func NewPlanetScreen(model *Model) *PlanetScreen {
@@ -78,9 +72,5 @@ func (p *PlanetScreen) SetDimensions(width, height int) {
 
 // Planet-specific rendering functions
 
-func buildPlanetHUDGlyphs(m *Model, width int) [][]rendering.Glyph {
-	// Planet-specific HUD: health, inventory, depth, temperature, etc.
-	return buildHUDGlyphs(m, width)
-}
 
 // Use existing itoa function from components.go

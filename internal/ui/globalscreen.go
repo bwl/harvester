@@ -328,12 +328,12 @@ func (g *GlobalScreen) createPlanetScreen(result *StartResult) SubScreen {
 	model := g.createModelWithSaveData(result)
 	// Create planet exploration screen
 	planetScreen := NewPlanetScreen(model)
-	
+
 	// Forward current window dimensions to the new screen
 	if g.width > 0 && g.height > 0 {
 		planetScreen.SetDimensions(g.width, g.height)
 	}
-	
+
 	return planetScreen
 }
 

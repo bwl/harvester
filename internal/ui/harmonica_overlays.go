@@ -66,7 +66,7 @@ func (f *FadeOverlay) GetGlyphs() [][]rendering.Glyph {
 				Background: rendering.Color{R: 24, G: 24, B: 28},
 				Style:      rendering.StyleNone,
 				Alpha:      easedAlpha,
-				BlendMode:  components.BlendNormal,
+				BlendMode:  int(components.BlendNormal),
 			}
 		}
 		glyphs[y] = row
@@ -118,7 +118,7 @@ func (p *PulseOverlay) GetGlyphs() [][]rendering.Glyph {
 				Background: rendering.Color{R: 16, G: 16, B: 32}, // Dark blue background
 				Style:      rendering.StyleNone,
 				Alpha:      alpha,
-				BlendMode:  components.BlendAdditive, // Additive for glow effect
+				BlendMode:  int(components.BlendAdditive), // Additive for glow effect
 			}
 		}
 		glyphs[y] = row
@@ -175,7 +175,7 @@ func (w *WaveDistortionOverlay) GetGlyphs() [][]rendering.Glyph {
 				Background: rendering.Color{R: 8, G: 8, B: 12}, // Very subtle blue
 				Style:      rendering.StyleNone,
 				Alpha:      alphaModulation,
-				BlendMode:  components.BlendMultiply, // Multiply for subtle darkening
+				BlendMode:  int(components.BlendMultiply), // Multiply for subtle darkening
 			}
 		}
 		glyphs[y] = row
@@ -241,7 +241,7 @@ func (s *SpringBounceOverlay) GetGlyphs() [][]rendering.Glyph {
 				Background: rendering.Color{R: 64, G: 32, B: 0},   // Dark orange
 				Style:      rendering.StyleBold,
 				Alpha:      alpha,
-				BlendMode:  components.BlendNormal,
+				BlendMode:  int(components.BlendNormal),
 			}
 		}
 		glyphs[y] = row

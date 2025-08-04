@@ -2,9 +2,10 @@ package rendering
 
 const (
 	ZBackground = 0
+	ZGame       = 50 // Game entities and content
 	ZContent    = 100
-	ZUI         = 120
-	ZHUD        = 130
-	ZMenu       = 150
+	ZUI         = 500
+	ZHUD        = 700
+	ZMenu       = 900
 	ZFrame      = 1000
 )

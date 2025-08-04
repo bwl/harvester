@@ -1,6 +1,10 @@
 package ui
 
-import "harvester/pkg/rendering"
+import (
+	"github.com/charmbracelet/lipgloss/v2"
+	"harvester/pkg/rendering"
+	"strings"
+)
 
 type planetSurfaceContent struct {
 	g    [][]rendering.Glyph
@@ -13,12 +17,41 @@ func newPlanetSurfaceContent(g [][]rendering.Glyph) *planetSurfaceContent {
 	}
 	return &planetSurfaceContent{g: g, w: len(g[0]), h: len(g)}
 }
+
 func (t *planetSurfaceContent) GetLayer() rendering.Layer { return rendering.LayerGame }
 func (t *planetSurfaceContent) GetZ() int                 { return rendering.ZContent }
-func (t *planetSurfaceContent) GetPosition() rendering.Position {
-	return rendering.Position{Horizontal: rendering.Left, Vertical: rendering.Top}
+
+func (t *planetSurfaceContent) ToLipglossLayer() *lipgloss.Layer {
+	if t.g == nil || len(t.g) == 0 {
+		return lipgloss.NewLayer("").X(0).Y(0).Z(t.GetZ()).ID("planet-surface")
+	}
+
+	var content strings.Builder
+	for y := 0; y < len(t.g); y++ {
+		if y > 0 {
+			content.WriteString("\n")
+		}
+		for x := 0; x < len(t.g[y]); x++ {
+			glyph := t.g[y][x]
+			
+			// Convert glyph color to hex string
+			fgHex := "#" + ColorToHex(glyph.Foreground)
+			bgHex := "#" + ColorToHex(glyph.Background)
+			
+			// Create styled character
+			styledChar := lipgloss.NewStyle().
+				Foreground(lipgloss.Color(fgHex)).
+				Background(lipgloss.Color(bgHex)).
+				Render(string(glyph.Char))
+			
+			content.WriteString(styledChar)
+		}
+	}
+
+	return lipgloss.NewLayer(content.String()).
+		X(0).
+		Y(0).
+		Z(t.GetZ()).
+		ID("planet-surface")
 }
-func (t *planetSurfaceContent) GetBounds() rendering.Bounds {
-	return rendering.Bounds{Width: t.w, Height: t.h}
-}
-func (t *planetSurfaceContent) GetGlyphs() [][]rendering.Glyph { return t.g }
+

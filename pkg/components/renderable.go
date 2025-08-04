@@ -1,6 +1,6 @@
 package components
 
-import "github.com/charmbracelet/lipgloss"
+import "image/color"
 
 type TileType int
 
@@ -30,7 +30,7 @@ const (
 )
 
 type ColorModifier struct {
-	TintColor      *lipgloss.Color
+	TintColor      *color.Color
 	PulseRate      float64
 	TemperatureHue float64
 	Special        SpecialEffect

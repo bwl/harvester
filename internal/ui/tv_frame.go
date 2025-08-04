@@ -1,47 +1,50 @@
 package ui
 
-import "harvester/pkg/rendering"
+import (
+	"github.com/charmbracelet/lipgloss/v2"
+	"harvester/pkg/rendering"
+	"strings"
+)
 
 type tvFrame struct{ w, h int }
 
-func newTVFrame(w, h int) *tvFrame           { return &tvFrame{w: w, h: h} }
+func newTVFrame(w, h int) rendering.LayerContent { 
+	return NewLayerTVFrame(w, h)
+}
+
 func (t *tvFrame) GetLayer() rendering.Layer { return rendering.LayerTVFrame }
 func (t *tvFrame) GetZ() int                 { return rendering.ZFrame }
-func (t *tvFrame) GetPosition() rendering.Position {
-	return rendering.Position{Horizontal: rendering.Left, Vertical: rendering.Top}
-}
-func (t *tvFrame) GetBounds() rendering.Bounds { return rendering.Bounds{Width: t.w, Height: t.h} }
-func (t *tvFrame) GetGlyphs() [][]rendering.Glyph {
-	g := make([][]rendering.Glyph, t.h)
-	for y := 0; y < t.h; y++ {
-		g[y] = make([]rendering.Glyph, t.w)
-	}
-	black := rendering.Color{R: 24, G: 24, B: 28}
+
+func (t *tvFrame) ToLipglossLayer() *lipgloss.Layer {
+	// Create TV frame using lipgloss borders instead of manual glyphs
 	pad := 3
-	// top and bottom borders
-	for y := 0; y < pad && y < t.h; y++ {
-		for x := 0; x < t.w; x++ {
-			g[y][x] = rendering.Glyph{Char: '█', Foreground: black, Background: black, Alpha: 1.0}
-		}
+	innerWidth := t.w - (pad * 2)
+	innerHeight := t.h - (pad * 2)
+	
+	if innerWidth <= 0 || innerHeight <= 0 {
+		// Too small for frame, just return empty
+		return lipgloss.NewLayer("").X(0).Y(0).Z(t.GetZ()).ID("tv-frame")
 	}
-	for y := t.h - pad; y < t.h; y++ {
-		if y < 0 {
-			continue
-		}
-		for x := 0; x < t.w; x++ {
-			g[y][x] = rendering.Glyph{Char: '█', Foreground: black, Background: black, Alpha: 1.0}
-		}
+	
+	// Create frame content
+	content := strings.Repeat(" ", innerWidth)
+	for i := 1; i < innerHeight; i++ {
+		content += "\n" + strings.Repeat(" ", innerWidth)
 	}
-	// left and right borders
-	for y := pad; y < t.h-pad; y++ {
-		for x := 0; x < pad && x < t.w; x++ {
-			g[y][x] = rendering.Glyph{Char: '█', Foreground: black, Background: black, Alpha: 1.0}
-		}
-		for x := t.w - pad; x < t.w; x++ {
-			if x >= 0 {
-				g[y][x] = rendering.Glyph{Char: '█', Foreground: black, Background: black, Alpha: 1.0}
-			}
-		}
-	}
-	return g
+	
+	// Apply thick border style
+	frameStyle := lipgloss.NewStyle().
+		Border(lipgloss.ThickBorder()).
+		BorderForeground(lipgloss.Color("#181c1c")).
+		Background(lipgloss.Color("#181c1c")).
+		Width(innerWidth).
+		Height(innerHeight)
+	
+	styledContent := frameStyle.Render(content)
+	
+	return lipgloss.NewLayer(styledContent).
+		X(0).
+		Y(0).
+		Z(t.GetZ()).
+		ID("tv-frame")
 }
