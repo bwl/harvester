@@ -536,7 +536,7 @@ func (dg *DepthGenerator) GenerateLevel() *Level {
 
 ## Vision Summary
 
-This multi-planet deep exploration design transforms bubbleRouge from a simple expanding universe game into a rich, **strategic space exploration experience**. The combination of:
+This multi-planet deep exploration design transforms Harvest of Stars from a simple expanding universe game into a rich, **strategic space exploration experience**. The combination of:
 
 - **High-stakes planet selection** (fuel management + commitment)
 - **Biome-specific gameplay systems** (unique mechanics per world)

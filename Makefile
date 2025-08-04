@@ -1,4 +1,4 @@
-# Simple Makefile for bubbleRouge
+# Simple Makefile for Harvest of Stars
 
 .PHONY: run build fmt imports vet lint staticcheck test clean watch-new watch-modified watch-go
 

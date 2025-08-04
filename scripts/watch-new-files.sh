@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Watch for new files in the bubbleRouge project
+# Watch for new files in the Harvest of Stars project
 # Usage: ./scripts/watch-new-files.sh [directory]
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

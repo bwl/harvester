@@ -1,6 +1,6 @@
 # UI Style Guide
 
-This guide provides comprehensive documentation for the bubbleRouge UI styling system built with lipgloss.
+This guide provides comprehensive documentation for the Harvest of Stars UI styling system built with lipgloss.
 
 ## Overview
 
@@ -449,4 +449,4 @@ Add tests for new components and styling patterns to ensure reliability and catc
 
 ---
 
-This style guide provides a comprehensive foundation for building beautiful, responsive terminal UIs with the bubbleRouge styling system. The component-based architecture, theme system, and performance optimizations enable you to create sophisticated interfaces while maintaining clean, maintainable code.
+This style guide provides a comprehensive foundation for building beautiful, responsive terminal UIs with the Harvest of Stars styling system. The component-based architecture, theme system, and performance optimizations enable you to create sophisticated interfaces while maintaining clean, maintainable code.

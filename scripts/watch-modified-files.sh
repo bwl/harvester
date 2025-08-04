@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Watch for modified files in the bubbleRouge project
+# Watch for modified files in the Harvest of Stars project
 # Usage: ./scripts/watch-modified-files.sh [directory]
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

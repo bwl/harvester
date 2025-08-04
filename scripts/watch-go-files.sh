@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Watch for Go files being created or modified in the bubbleRouge project
+# Watch for Go files being created or modified in the Harvest of Stars project
 # Usage: ./scripts/watch-go-files.sh [directory]
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
