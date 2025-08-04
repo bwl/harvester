@@ -6,6 +6,5 @@ const (
 	ZUI         = 120
 	ZHUD        = 130
 	ZMenu       = 150
-	ZPattern    = 800
 	ZFrame      = 1000
 )
